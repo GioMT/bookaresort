@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avellano's – Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<!-- HAMBURGER (mobile) -->
+<button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Open menu">☰</button>
+
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="mainSidebar">
+  <div class="sidebar-logo">
+    <div class="logo-main">Avellano's <span>Beach Hut</span></div>
+    <div class="logo-sub">Admin Panel</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a class="nav-item active" data-page="dashboard" onclick="navTo('dashboard')">
+      <span class="nav-icon">📊</span>Revenue Dashboard
+    </a>
+    <div class="nav-section-label">Bookings</div>
+    <a class="nav-item" data-page="bookings" onclick="navTo('bookings')">
+      <span class="nav-icon">📅</span>Booking History
+    </a>
+    <a class="nav-item" data-page="calendar" onclick="navTo('calendar')">
+      <span class="nav-icon">🗓️</span>Availability Calendar
+    </a>
+    <div class="nav-section-label">Management</div>
+    <a class="nav-item" data-page="rooms" onclick="navTo('rooms')">
+      <span class="nav-icon">🏠</span>Manage Rooms
+    </a>
+    <a class="nav-item" data-page="repairs" onclick="navTo('repairs')">
+      <span class="nav-icon">🔧</span>Repair Costs
+    </a>
+    <a class="nav-item" data-page="guests" onclick="navTo('guests')">
+      <span class="nav-icon">🚩</span>Flagged Guests
+    </a>
+    <div class="nav-section-label">Export</div>
+    <a class="nav-item" data-page="export" onclick="navTo('export')">
+      <span class="nav-icon">📤</span>Export Data
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="/index.html">← Back to Guest Site</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbarTitle">Revenue Dashboard</div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost btn-sm" onclick="navTo('export')">📤 Export</button>
+      <button class="btn btn-primary btn-sm" onclick="openModal('bookingModal')">+ New Booking</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD PAGE -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid" id="dashStats"></div>
+      <div class="chart-row">
+        <div class="card">
+          <div class="card-title">📈 Monthly Revenue <span class="card-badge">Last 6 months</span></div>
+          <div class="bar-chart" id="revenueChart"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🏠 Bookings by Room</div>
+          <div class="donut-wrap" id="donutWrap"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">💰 Revenue Breakdown</div>
+        <div id="revBreakdown"></div>
+      </div>
+    </div>
+
+    <!-- BOOKINGS PAGE -->
+    <div class="page" id="page-bookings">
+      <div class="search-row">
+        <input class="search-input" type="text" placeholder="🔍 Search by guest, ref, room..." id="bookingSearch" oninput="renderBookingsTable()">
+        <select class="search-input" style="flex:0;min-width:140px;" id="statusFilter" onchange="renderBookingsTable()">
+          <option value="">All Statuses</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="pending">Pending</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <select class="search-input" style="flex:0;min-width:140px;" id="roomFilter" onchange="renderBookingsTable()">
+          <option value="">All Rooms</option>
+        </select>
+        <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;color:var(--text-muted);cursor:pointer;">
+          <input type="checkbox" id="flaggedOnly" onchange="renderBookingsTable()"> Flagged only
+        </label>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ref</th><th>Guest</th><th>Room</th><th>Check-In</th><th>Check-Out</th>
+                <th>Stay</th><th>Total</th><th>Status</th><th>Notes</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="bookingsTbody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="bookingsPag"></div>
+      </div>
+    </div>
+
+    <!-- CALENDAR PAGE -->
+    <div class="page" id="page-calendar">
+      <div class="card" style="margin-bottom:1.2rem;">
+        <div class="card-title">🗓️ Availability Overview</div>
+        <div id="adminCalWrap" style="overflow-x:auto;"></div>
+      </div>
+    </div>
+
+    <!-- ROOMS PAGE -->
+    <div class="page" id="page-rooms">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+        <button class="btn btn-primary" onclick="openRoomModal()">+ Add Room</button>
+      </div>
+      <div id="roomsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.2rem;"></div>
+    </div>
+
+    <!-- REPAIRS PAGE -->
+    <div class="page" id="page-repairs">
+      <div class="card" style="margin-bottom:1.2rem;">
+        <div class="card-title">🔧 Log Repair Cost</div>
+        <div class="form-row">
+          <div class="form-group"><label>Booking / Reference</label><input type="text" id="repairRef" placeholder="ABHC-XXXXXX or booking ref"></div>
+          <div class="form-group"><label>Description</label><input type="text" id="repairDesc" placeholder="Broken window, stained mattress..."></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Amount (₱)</label><input type="number" id="repairAmt" placeholder="0" min="0"></div>
+          <div class="form-group"><label>Date</label><input type="date" id="repairDate"></div>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="repairCat">
+            <option>Furniture Damage</option>
+            <option>Appliance Repair</option>
+            <option>Plumbing</option>
+            <option>Electrical</option>
+            <option>Cleaning / Pest Control</option>
+            <option>Structural</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <button class="btn btn-sunset" onclick="addRepair()">+ Log Repair Cost</button>
+      </div>
+      <div class="card">
+        <div class="card-title">🛠 All Repair Costs <span class="card-badge" id="totalRepairBadge">₱0</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Ref</th><th>Category</th><th>Description</th><th>Amount</th><th>Action</th></tr></thead>
+            <tbody id="repairsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLAGGED GUESTS PAGE -->
+    <div class="page" id="page-guests">
+      <div class="card" style="margin-bottom:1.2rem;">
+        <div class="card-title">🚩 Flag a Guest</div>
+        <div class="form-row">
+          <div class="form-group"><label>Guest Name</label><input type="text" id="flagName" placeholder="Full name"></div>
+          <div class="form-group"><label>Email</label><input type="email" id="flagEmail" placeholder="guest@email.com"></div>
+        </div>
+        <div class="form-group"><label>Reason / Notes</label><textarea id="flagReason" rows="2" placeholder="Describe the incident..."></textarea></div>
+        <div class="form-group">
+          <label>Severity</label>
+          <select id="flagSeverity">
+            <option value="low">⚠️ Low — Minor damage or violation</option>
+            <option value="medium">🟠 Medium — Significant property damage</option>
+            <option value="high">🔴 High — Severe damage / safety concern</option>
+          </select>
+        </div>
+        <button class="btn btn-danger" onclick="addFlaggedGuest()">🚩 Flag This Guest</button>
+      </div>
+      <div class="card">
+        <div class="card-title">🚩 Flagged Guest Registry <span class="card-badge" id="flagCountBadge">0</span></div>
+        <div class="search-row"><input class="search-input" type="text" placeholder="🔍 Search flagged guests..." id="flagSearch" oninput="renderFlaggedTable()"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Guest Name</th><th>Email</th><th>Severity</th><th>Reason</th><th>Flagged On</th><th>Action</th></tr></thead>
+            <tbody id="flagsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORT PAGE -->
+    <div class="page" id="page-export">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.2rem;">
+        <div class="card">
+          <div class="card-title">📋 Bookings Export</div>
+          <p style="font-size:0.84rem;color:var(--text-muted);margin-bottom:1.2rem;line-height:1.6;">Export all booking records including guest info, dates, revenue, and notes.</p>
+          <div class="form-group"><label>Date Range</label>
+            <select id="exportDateRange" class="search-input">
+              <option value="all">All Time</option>
+              <option value="month">This Month</option>
+              <option value="quarter">This Quarter</option>
+              <option value="year">This Year</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Status Filter</label>
+            <select id="exportStatus" class="search-input">
+              <option value="">All Statuses</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:0.7rem;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="exportCSV('bookings')">⬇ CSV</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">💰 Revenue Report</div>
+          <p style="font-size:0.84rem;color:var(--text-muted);margin-bottom:1.2rem;line-height:1.6;">Export revenue summary with repair cost deductions, taxes, and net income.</p>
+          <button class="btn btn-success" onclick="exportCSV('revenue')">⬇ Revenue CSV</button>
+        </div>
+        <div class="card">
+          <div class="card-title">🔧 Repair Costs Export</div>
+          <p style="font-size:0.84rem;color:var(--text-muted);margin-bottom:1.2rem;line-height:1.6;">Export all logged repair and maintenance costs.</p>
+          <button class="btn btn-sunset" onclick="exportCSV('repairs')">⬇ Repairs CSV</button>
+        </div>
+        <div class="card">
+          <div class="card-title">🚩 Flagged Guests Export</div>
+          <p style="font-size:0.84rem;color:var(--text-muted);margin-bottom:1.2rem;line-height:1.6;">Export the flagged guest registry for offline review.</p>
+          <button class="btn btn-danger" onclick="exportCSV('flags')">⬇ Flags CSV</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- NEW / EDIT BOOKING MODAL -->
+<div class="modal-overlay" id="bookingModal">
+  <div class="modal">
+    <div class="modal-title" id="bookingModalTitle">New Booking</div>
+    <input type="hidden" id="editBookingId">
+    <div class="form-row">
+      <div class="form-group"><label>Guest First Name</label><input type="text"  id="bFname" placeholder="First name"></div>
+      <div class="form-group"><label>Guest Last Name</label> <input type="text"  id="bLname" placeholder="Last name"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Email</label><input type="email" id="bEmail" placeholder="guest@email.com"></div>
+      <div class="form-group"><label>Phone</label><input type="tel"   id="bPhone" placeholder="+63 912 345 6789"></div>
+    </div>
+    <div class="form-group"><label>Room</label><select id="bRoom"></select></div>
+
+    <!-- Stay Type -->
+    <div class="form-group">
+      <label>Stay Type</label>
+      <div class="stay-type-toggle">
+        <button type="button" class="stay-type-btn active" id="stayBtn12" onclick="setStayType('12hr')">🌙 12-Hour Stay</button>
+        <button type="button" class="stay-type-btn"        id="stayBtn24" onclick="setStayType('24hr')">☀️ 24-Hour Stay</button>
+      </div>
+    </div>
+
+    <!-- 12-hour fields -->
+    <div id="stayFields12">
+      <div class="form-row">
+        <div class="form-group"><label>Check-In Date</label><input type="date"     id="bCheckIn12"   onchange="calcBTotal()"></div>
+        <div class="form-group"><label>Check-In Time</label><input type="time"     id="bCheckInTime" onchange="calcBTotal()" value="14:00"></div>
+      </div>
+    </div>
+
+    <!-- 24-hour fields -->
+    <div id="stayFields24" style="display:none;">
+      <div class="form-row">
+        <div class="form-group"><label>Check-In Date</label><input type="date"   id="bCheckIn24"  onchange="calcBTotal()"></div>
+        <div class="form-group"><label>Number of Days</label><input type="number" id="bDays"       onchange="calcBTotal()" min="1" value="1" placeholder="1"></div>
+      </div>
+    </div>
+    <div class="form-group"><label>Status</label>
+      <select id="bStatus">
+        <option value="confirmed">Confirmed</option>
+        <option value="pending">Pending</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Special Requests</label><textarea id="bReq" rows="2"></textarea></div>
+    <div class="form-group"><label>Admin Notes</label><textarea id="bNotes" rows="2" placeholder="Internal notes..."></textarea></div>
+    <div style="background:var(--sand);border-radius:10px;padding:0.9rem;font-size:0.84rem;" id="bTotalPreview"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost"   onclick="closeModal('bookingModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBooking()">Save Booking</button>
+    </div>
+  </div>
+</div>
+
+<!-- ROOM MODAL -->
+<div class="modal-overlay" id="roomModal">
+  <div class="modal">
+    <div class="modal-title" id="roomModalTitle">Add Room</div>
+    <input type="hidden" id="editRoomId">
+    <div class="form-row">
+      <div class="form-group"><label>Room Name</label>       <input type="text"   id="rName"  placeholder="Garden Hut Cottage"></div>
+      <div class="form-group"><label>Room ID / Slug</label>  <input type="text"   id="rId"    placeholder="cottage"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>12-Hour Price (₱)</label><input type="number" id="rPrice12h" min="0"></div>
+      <div class="form-group"><label>24-Hour Price (₱)</label><input type="number" id="rPrice24h" min="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Capacity</label><input type="text" id="rCap" placeholder="2 Adults"></div>
+      <div class="form-group"><label>Total Quantity</label><input type="number" id="rQuantity" min="1" value="1"></div>
+    </div>
+    <div class="form-group">
+      <label>Room Photo</label>
+      <div class="img-upload-area" id="imgUploadArea" onclick="document.getElementById('rImgFile').click()">
+        <div class="img-upload-placeholder" id="imgUploadPlaceholder">
+          <span style="font-size:2rem;">📷</span>
+          <span>Click to upload room photo</span>
+          <span style="font-size:0.72rem;color:var(--text-muted);">JPG, PNG, WEBP · Max 5MB</span>
+        </div>
+        <img id="imgPreview" class="img-preview" src="" alt="Room preview" style="display:none;">
+      </div>
+      <input type="file" id="rImgFile" accept="image/*" style="display:none;" onchange="handleImgUpload(this)">
+      <input type="hidden" id="rImgUrl">
+      <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;">
+        <button type="button" class="btn btn-ghost btn-xs" onclick="document.getElementById('rImgFile').click()">📁 Browse</button>
+        <button type="button" class="btn btn-ghost btn-xs" id="clearImgBtn" onclick="clearRoomImage()" style="display:none;">✕ Remove</button>
+      </div>
+    </div>
+    <div class="form-group"><label>Badge Text</label><input type="text" id="rBadge" placeholder="Garden View"></div>
+    <div class="form-group"><label>Amenities (comma separated)</label>
+      <input type="text" id="rAmenities" placeholder="Garden View, Private Deck, AC + Fan">
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:0.7rem;">
+      <input type="checkbox" id="rActive" checked style="width:auto;">
+      <label for="rActive" style="text-transform:none;font-size:0.88rem;margin:0;cursor:pointer;">Active (visible on booking page)</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost"   onclick="closeModal('roomModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRoom()">Save Room</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOOKING DETAIL MODAL -->
+<div class="modal-overlay" id="bookingDetailModal">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-title">Booking Details</div>
+    <div id="bookingDetailContent"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost"   onclick="closeModal('bookingDetailModal')">Close</button>
+      <button class="btn btn-primary" id="editFromDetailBtn">Edit Booking</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/abhc-db.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

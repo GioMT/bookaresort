@@ -1,0 +1,47 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+# Redirect all API calls from /api/* → netlify functions
+[[redirects]]
+  from = "/api/bookings"
+  to = "/.netlify/functions/bookings"
+  status = 200
+
+[[redirects]]
+  from = "/api/bookings/*"
+  to = "/.netlify/functions/bookings"
+  status = 200
+
+[[redirects]]
+  from = "/api/rooms"
+  to = "/.netlify/functions/rooms"
+  status = 200
+
+[[redirects]]
+  from = "/api/rooms/*"
+  to = "/.netlify/functions/rooms"
+  status = 200
+
+[[redirects]]
+  from = "/api/repairs"
+  to = "/.netlify/functions/repairs"
+  status = 200
+
+[[redirects]]
+  from = "/api/repairs/*"
+  to = "/.netlify/functions/repairs"
+  status = 200
+
+[[redirects]]
+  from = "/api/flagged-guests"
+  to = "/.netlify/functions/flagged-guests"
+  status = 200
+
+[[redirects]]
+  from = "/api/flagged-guests/*"
+  to = "/.netlify/functions/flagged-guests"
+  status = 200
+
+[functions]
+  node_bundler = "esbuild"

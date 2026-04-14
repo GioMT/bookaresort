@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avellano's Beach Hut Cottage – Luxury Beachfront Retreat</title>
+<meta name="description" content="Avellano's Beach Hut Cottage – a luxury beach resort. Book direct for best rates, ocean views, and unforgettable sunsets.">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/guest.css">
+</head>
+<body>
+
+<div class="page-transition"></div>
+<div id="cursor-glow"></div>
+
+<!-- NAV -->
+<nav class="sticky-book" id="mainNav">
+  <a class="nav-logo" href="#">Avellano's <span>Beach Hut</span></a>
+  <ul class="nav-links">
+    <li><a href="#booking">Book</a></li>
+    <li><a href="#rooms">Rooms</a></li>
+    <li><a href="#activities">Activities</a></li>
+    <li><a href="#dining">Dining</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <a href="#booking" class="btn-book-now">Reserve Now</a>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-bg">
+    <div class="aurora"></div>
+    <div class="hero-stars" id="starsContainer"></div>
+    <div class="particle" style="left:15%;top:25%;width:6px;height:6px;background:rgba(78,198,192,0.6);--pf:9s;--pd:0s;"></div>
+    <div class="particle" style="left:75%;top:40%;width:4px;height:4px;background:rgba(255,208,181,0.7);--pf:7s;--pd:1s;"></div>
+    <div class="particle" style="left:48%;top:18%;width:5px;height:5px;background:rgba(255,255,255,0.5);--pf:10s;--pd:1.5s;"></div>
+    <div class="particle" style="left:38%;top:78%;width:4px;height:4px;background:rgba(255,208,181,0.6);--pf:6s;--pd:3s;"></div>
+    <div class="particle" style="left:60%;top:50%;width:6px;height:6px;background:rgba(78,198,192,0.4);--pf:13s;--pd:2.5s;"></div>
+  </div>
+  <div class="wave-container">
+    <svg class="wave-svg wv1" viewBox="0 0 1440 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <path d="M0,50C200,80,400,20,600,50C800,80,1000,20,1200,50C1320,65,1400,40,1440,50L1440,100L0,100Z" fill="rgba(255,255,255,0.09)"/>
+    </svg>
+    <svg class="wave-svg wv2" viewBox="0 0 1440 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <path d="M0,30C300,70,600,0,900,40C1100,65,1300,20,1440,35L1440,100L0,100Z" fill="rgba(255,255,255,0.06)"/>
+    </svg>
+    <svg class="wave-svg wv3" viewBox="0 0 1440 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <path d="M0,60C400,20,800,80,1200,40C1320,28,1400,55,1440,50L1440,100L0,100Z" fill="rgba(255,255,255,0.04)"/>
+    </svg>
+  </div>
+  <div class="hero-content">
+    <span class="hero-badge">✦ Beachfront Paradise · Philippines ✦</span>
+    <h1>Avellano's<br><em>Beach Hut</em> Cottage</h1>
+    <p class="hero-sub">Where the ocean meets endless sunsets. A private beachfront retreat crafted for those who seek stillness, warmth, and the rhythm of the tides.</p>
+    <div class="hero-ctas">
+      <a href="#booking" class="btn-hero-primary">Reserve Your Stay</a>
+      <a href="#rooms"   class="btn-hero-outline">Explore Rooms</a>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    <span>Discover</span>
+  </div>
+</header>
+
+<!-- WEATHER -->
+<div class="weather-strip">
+  <div class="weather-item"><span class="weather-icon">☀️</span><div><div class="weather-label">Today</div><div class="weather-temp">34°C</div></div></div>
+  <div class="weather-item"><span class="weather-icon" style="animation-delay:0.4s;">💧</span><div><div class="weather-label">Humidity</div><div style="font-weight:500;font-size:1rem;">72%</div></div></div>
+  <div class="weather-item"><span class="weather-icon" style="animation-delay:0.8s;">🌊</span><div><div class="weather-label">Sea Temp</div><div style="font-weight:500;font-size:1rem;">29°C</div></div></div>
+  <div class="weather-item"><span class="weather-icon" style="animation-delay:1.2s;">🌅</span><div><div class="weather-label">Sunset</div><div style="font-weight:500;font-size:1rem;">6:18 PM</div></div></div>
+  <div class="weather-perk">Perfect beach weather — why are you still planning? 🏖</div>
+</div>
+
+<!-- PERKS -->
+<div class="perks-bar">
+  <div class="perks-grid">
+    <div class="perk-item reveal stagger-1"><span class="perk-icon">💰</span><div class="perk-title">Best Rate Guarantee</div><div class="perk-desc">Book direct, pay less than any OTA</div></div>
+    <div class="perk-item reveal stagger-2"><span class="perk-icon">🎁</span><div class="perk-title">Free Welcome Package</div><div class="perk-desc">Fruits & local wine on arrival</div></div>
+    <div class="perk-item reveal stagger-3"><span class="perk-icon">🏊</span><div class="perk-title">Early Check-In</div><div class="perk-desc">Complimentary when available</div></div>
+    <div class="perk-item reveal stagger-4"><span class="perk-icon">🔄</span><div class="perk-title">Free Cancellation</div><div class="perk-desc">Up to 48 hours before arrival</div></div>
+    <div class="perk-item reveal stagger-5"><span class="perk-icon">🛎</span><div class="perk-title">Priority Service</div><div class="perk-desc">Dedicated concierge attention</div></div>
+  </div>
+</div>
+
+<!-- BOOKING ENGINE -->
+<section class="booking-section" id="booking">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:2rem;" class="reveal">
+      <span class="section-label">Live Availability Calendar</span>
+      <h2 class="section-title">Check <em>Availability</em> &amp; Book</h2>
+      <p class="section-sub" style="margin:0 auto;text-align:center;">Click two dates on the calendar. Striped days are already booked. Room availability is checked per your dates in real time.</p>
+    </div>
+    <div class="booking-card reveal">
+      <div class="booking-tabs">
+        <div class="booking-tab active" id="tabBtn-calendar" onclick="switchTab('calendar')">📅 Step 1 · Pick Dates</div>
+        <div class="booking-tab"        id="tabBtn-room"     onclick="switchTab('room')">🏠 Step 2 · Choose Room</div>
+        <div class="booking-tab"        id="tabBtn-confirm"  onclick="switchTab('confirm')">✅ Step 3 · Confirm</div>
+      </div>
+
+      <!-- TAB 1: DATES -->
+      <div class="booking-tab-pane active" id="tab-calendar">
+        <div class="cal-wrap">
+          <div>
+            <div id="cal1"></div>
+            <div id="cal2" style="margin-top:1.8rem;"></div>
+            <div class="cal-legend">
+              <div class="legend-item"><div class="legend-dot legend-avail"></div>Available</div>
+              <div class="legend-item"><div class="legend-dot legend-unavail"></div>Booked out</div>
+              <div class="legend-item"><div class="legend-dot legend-sel"></div>Your selection</div>
+            </div>
+          </div>
+          <div>
+            <div id="booking-summary-area">
+              <div style="text-align:center;padding:3rem 1rem;color:var(--text-muted);">
+                <div style="font-size:3rem;margin-bottom:1rem;">🗓️</div>
+                <p style="font-size:0.95rem;">Click a <strong>check-in</strong> date, then a <strong>check-out</strong> date to see your stay summary.</p>
+              </div>
+            </div>
+            <button class="btn-reserve" id="btnToRoom" onclick="switchTab('room')" style="display:none;">Continue — Choose Your Room →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: ROOM -->
+      <div class="booking-tab-pane" id="tab-room">
+        <div id="dateRangeBanner" style="background:var(--aqua-light);border-radius:12px;padding:0.9rem 1.2rem;margin-bottom:1.5rem;font-size:0.88rem;color:var(--aqua-deep);font-weight:500;"></div>
+        <div class="room-selector" id="roomSelector"></div>
+        <button class="btn-reserve" id="btnToConfirm" onclick="switchTab('confirm')" style="display:none;">Continue — Review &amp; Confirm →</button>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.7rem;text-align:center;">✅ Availability checked against your selected dates in real time.</p>
+      </div>
+
+      <!-- TAB 3: CONFIRM -->
+      <div class="booking-tab-pane" id="tab-confirm">
+        <div style="max-width:520px;margin:0 auto;">
+          <div id="confirmSummary" style="background:var(--sand);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;"></div>
+          <div class="flagged-warning" id="flaggedWarning">⚠️ <span id="flaggedMsg"></span></div>
+          <div class="form-row" style="margin-bottom:0;">
+            <div class="form-group"><label>First Name</label><input type="text"   id="guestFname" placeholder="First name"   oninput="checkFlagged()"></div>
+            <div class="form-group"><label>Last Name</label> <input type="text"   id="guestLname" placeholder="Last name"    oninput="checkFlagged()"></div>
+          </div>
+          <div class="form-group"><label>Email</label><input type="email" id="guestEmail" placeholder="your@email.com" oninput="checkFlagged()"></div>
+          <div class="form-group"><label>Phone</label><input type="tel"   id="guestPhone" placeholder="+63 912 345 6789"></div>
+          <div class="form-group"><label>Special Requests</label><textarea id="guestReq" rows="2" placeholder="Anniversary setup, dietary needs, early arrival..."></textarea></div>
+          <button class="btn-reserve" onclick="submitReservation()">🏖 Confirm My Reservation</button>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.8rem;text-align:center;">🔒 Secure booking · Free cancellation up to 48 hours before arrival</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BOOKING CONFIRMATION MODAL -->
+<div class="modal-overlay" id="bookingModal">
+  <div class="modal-card">
+    <span class="modal-icon">🎉</span>
+    <h2 class="modal-title">You're Booked!</h2>
+    <p class="modal-sub" id="modalSub"></p>
+    <div class="modal-details" id="modalDetails"></div>
+    <button class="btn-close-modal" onclick="document.getElementById('bookingModal').classList.remove('open')">Close &amp; Continue Exploring 🌊</button>
+  </div>
+</div>
+
+<!-- FLAGGED GUEST ALERT MODAL -->
+<div class="flag-modal-overlay" id="flagModal">
+  <div class="flag-modal">
+    <div style="font-size:2.5rem;margin-bottom:0.8rem;">🚩</div>
+    <h3 style="font-family:var(--font-serif);font-size:1.4rem;color:#DC2626;margin-bottom:0.5rem;">Guest Alert</h3>
+    <p style="font-size:0.88rem;color:var(--text-muted);line-height:1.6;margin-bottom:1.2rem;" id="flagModalMsg"></p>
+    <p style="font-size:0.8rem;color:#6B7280;margin-bottom:1.2rem;">Our team has been notified. You may still complete your booking.</p>
+    <div style="display:flex;gap:0.8rem;">
+      <button onclick="closeFlagModal()" style="flex:1;padding:0.75rem;border:1.5px solid #EF4444;border-radius:10px;background:white;color:#EF4444;cursor:pointer;font-weight:500;transition:all 0.2s;" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='white'">I Understand</button>
+      <button onclick="closeFlagModal()" style="flex:1;padding:0.75rem;border:none;border-radius:10px;background:#EF4444;color:white;cursor:pointer;font-weight:500;transition:all 0.2s;" onmouseover="this.style.background='#DC2626'" onmouseout="this.style.background='#EF4444'">Continue Booking</button>
+    </div>
+  </div>
+</div>
+
+<!-- ROOMS -->
+<section class="rooms-section" id="rooms">
+  <div class="rooms-header reveal">
+    <span class="section-label">Accommodation</span>
+    <h2 class="section-title">Your Home by the <em>Ocean</em></h2>
+    <p class="section-sub" style="margin:0 auto;text-align:center;">Each space dissolves the boundary between indoors and the sea.</p>
+  </div>
+  <div class="rooms-grid" id="roomsGrid"></div>
+</section>
+
+<!-- VIRTUAL TOUR -->
+<section class="tour-section">
+  <div class="tour-inner">
+    <div class="reveal-left">
+      <span class="section-label">Immersive Experience</span>
+      <h2 class="section-title">Take a <em>Virtual Tour</em></h2>
+      <p class="section-sub">Explore every corner before you arrive. 360° views — because seeing is believing.</p>
+      <div class="tour-tabs">
+        <button class="tour-tab active" data-bg="tb-suite"      onclick="setTourBg(this)">Beachfront Suite</button>
+        <button class="tour-tab"        data-bg="tb-cottage"    onclick="setTourBg(this)">Garden Cottage</button>
+        <button class="tour-tab"        data-bg="tb-villa"      onclick="setTourBg(this)">Sunset Villa</button>
+        <button class="tour-tab"        data-bg="tb-beach"      onclick="setTourBg(this)">Beach Area</button>
+        <button class="tour-tab"        data-bg="tb-restaurant" onclick="setTourBg(this)">Restaurant</button>
+      </div>
+    </div>
+    <div class="tour-visual reveal-right" onclick="alert('Launching 360° Virtual Tour!')">
+      <div class="tour-bg tb-suite" id="tourBg"></div>
+      <div class="tour-overlay">
+        <div class="tour-ripple"></div><div class="tour-ripple"></div><div class="tour-ripple"></div>
+        <div class="tour-play">▶</div>
+        <div class="tour-label">Launch 360° Tour</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ACTIVITIES -->
+<section class="activities-section" id="activities">
+  <div class="activities-header reveal">
+    <span class="section-label">Things To Do</span>
+    <h2 class="section-title" style="color:white;">Adventures for <em style="color:var(--aqua);">Every Soul</em></h2>
+    <p class="section-sub" style="margin:0 auto;text-align:center;color:rgba(255,255,255,0.75);">From thrilling water sports to serene sunset yoga.</p>
+  </div>
+  <div class="activities-grid">
+    <div class="activity-card reveal stagger-1"><span class="activity-icon">🤿</span><div class="activity-name">Scuba Diving</div><div class="activity-desc">Explore vibrant coral reefs with certified instructors</div></div>
+    <div class="activity-card reveal stagger-2"><span class="activity-icon">🏄</span><div class="activity-name">Surfing</div><div class="activity-desc">Lessons and board rentals for all skill levels</div></div>
+    <div class="activity-card reveal stagger-3"><span class="activity-icon">🚣</span><div class="activity-name">Island Hopping</div><div class="activity-desc">Guided tours to hidden coves and sandbars</div></div>
+    <div class="activity-card reveal stagger-4"><span class="activity-icon">🧘</span><div class="activity-name">Sunrise Yoga</div><div class="activity-desc">Daily beach sessions at dawn</div></div>
+    <div class="activity-card reveal stagger-1"><span class="activity-icon">🎣</span><div class="activity-name">Deep Sea Fishing</div><div class="activity-desc">Charter a boat and reel in the big catch</div></div>
+    <div class="activity-card reveal stagger-2"><span class="activity-icon">🌴</span><div class="activity-name">Mangrove Kayak</div><div class="activity-desc">Kayak through serene mangrove forests</div></div>
+    <div class="activity-card reveal stagger-3"><span class="activity-icon">🍹</span><div class="activity-name">Cocktail Making</div><div class="activity-desc">Mix tropical drinks at our beach bar</div></div>
+    <div class="activity-card reveal stagger-4"><span class="activity-icon">🌟</span><div class="activity-name">Stargazing Night</div><div class="activity-desc">Guided astronomy on the open beach</div></div>
+  </div>
+</section>
+
+<!-- DINING -->
+<section class="dining-section" id="dining">
+  <div class="dining-header reveal">
+    <span class="section-label">Food &amp; Drinks</span>
+    <h2 class="section-title">Flavors of the <em>Sea</em></h2>
+    <p class="section-sub" style="margin:0 auto;text-align:center;">Fresh catch, local spices, ocean breezes.</p>
+  </div>
+  <div class="dining-grid">
+    <div class="dining-card reveal-left">
+      <div class="dining-img restaurant"><span class="dining-emoji">🍽️</span></div>
+      <div class="dining-body">
+        <h3 class="dining-name">Kainan sa Dagat</h3>
+        <div class="dining-type">Beachfront Restaurant</div>
+        <p class="dining-desc">Fresh seafood grilled to order, Filipino classics with a gourmet twist, all with your toes in the sand.</p>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">Open: 7:00 AM – 10:00 PM</p>
+        <a href="#contact" class="btn-menu">View Menu</a>
+      </div>
+    </div>
+    <div class="dining-card reveal-right">
+      <div class="dining-img bar"><span class="dining-emoji">🍹</span></div>
+      <div class="dining-body">
+        <h3 class="dining-name">Halo-Halo Sunset Bar</h3>
+        <div class="dining-type">Beachside Bar &amp; Grill</div>
+        <p class="dining-desc">Handcrafted cocktails, cold craft beers, and light bites. Watch the sky turn amber and gold.</p>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">Open: 11:00 AM – Midnight</p>
+        <a href="#contact" class="btn-menu">View Menu</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section class="reviews-section">
+  <div class="reviews-header reveal">
+    <span class="section-label">Guest Stories</span>
+    <h2 class="section-title">Words from Our <em>Travelers</em></h2>
+  </div>
+  <div class="reviews-track-wrap">
+    <div class="reviews-track" id="reviewsTrack"></div>
+  </div>
+</section>
+
+<!-- LOCATION -->
+<section class="location-section" id="location">
+  <div class="location-inner">
+    <div class="reveal-left">
+      <span class="section-label">Getting Here</span>
+      <h2 class="section-title">Find <em>Your Way</em> To Us</h2>
+      <p class="section-sub">Secluded enough to feel like your own world, close enough to everything.</p>
+      <ul class="distance-list">
+        <li class="distance-item"><div class="distance-icon">✈️</div><div><div class="distance-place">Nearest Airport</div><div style="font-size:0.78rem;color:var(--text-muted);">Scheduled &amp; charter flights</div></div><span class="distance-km">45 min</span></li>
+        <li class="distance-item"><div class="distance-icon">⛴️</div><div><div class="distance-place">Ferry Terminal</div><div style="font-size:0.78rem;color:var(--text-muted);">Multiple daily crossings</div></div><span class="distance-km">12 min</span></li>
+        <li class="distance-item"><div class="distance-icon">🏪</div><div><div class="distance-place">Town Market &amp; Shops</div><div style="font-size:0.78rem;color:var(--text-muted);">Local vendors, fresh produce</div></div><span class="distance-km">8 min</span></li>
+        <li class="distance-item"><div class="distance-icon">🏥</div><div><div class="distance-place">Medical Center</div><div style="font-size:0.78rem;color:var(--text-muted);">24/7 emergency services</div></div><span class="distance-km">20 min</span></li>
+        <li class="distance-item"><div class="distance-icon">🏛️</div><div><div class="distance-place">Heritage Sites</div><div style="font-size:0.78rem;color:var(--text-muted);">Local history &amp; culture</div></div><span class="distance-km">25 min</span></li>
+      </ul>
+    </div>
+    <div class="reveal-right">
+      <div class="map-placeholder" onclick="window.open('https://maps.google.com/?q=avellanos+beach+resort+philippines','_blank')">🗺️</div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact-section" id="contact">
+  <div class="contact-inner">
+    <span class="section-label">Get In Touch</span>
+    <h2 class="section-title">We're Here to <em style="color:#FFD0B5;">Help</em></h2>
+    <p style="color:rgba(255,255,255,0.7);font-size:0.95rem;line-height:1.7;">Questions? Special requests? Our team is always ready for you.</p>
+    <div class="contact-grid">
+      <div class="contact-item"><span class="contact-icon">📞</span><div class="contact-label">Phone</div><div class="contact-value">+63 912 345 6789</div></div>
+      <div class="contact-item"><span class="contact-icon">📧</span><div class="contact-label">Email</div><div class="contact-value">hello@avellanos.ph</div></div>
+      <div class="contact-item"><span class="contact-icon">📍</span><div class="contact-label">Location</div><div class="contact-value">Avellano's Cove, Philippines</div></div>
+      <div class="contact-item"><span class="contact-icon">⏰</span><div class="contact-label">Front Desk</div><div class="contact-value">24 / 7</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Avellano's <span>Beach Hut</span> Cottage</div>
+  <ul class="footer-links">
+    <li><a href="#booking">Book Now</a></li>
+    <li><a href="#rooms">Rooms</a></li>
+    <li><a href="#activities">Activities</a></li>
+    <li><a href="#dining">Dining</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="admin.html">Admin Panel</a></li>
+  </ul>
+  <p class="footer-copy">© 2025 Avellano's Beach Hut Cottage · All rights reserved · Designed with ☀️ for beach lovers.</p>
+</footer>
+
+<button class="chat-bubble" onclick="alert('Hello! 👋 Welcome to Avellano\'s Beach Hut Cottage. How can we make your stay unforgettable?')">💬</button>
+
+<script src="js/abhc-db.js"></script>
+<script src="js/guest.js"></script>
+</body>
+</html>

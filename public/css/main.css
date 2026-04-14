@@ -1,0 +1,164 @@
+/* ============================================================
+   main.css — Shared tokens, reset, buttons, utilities
+   Avellano's Beach Hut Cottage
+   ============================================================ */
+
+:root {
+  --white: #FFFFFF;
+  --aqua-light: #E0F7F5;
+  --aqua: #4EC6C0;
+  --aqua-dark: #1A9A94;
+  --aqua-deep: #0D6E6A;
+  --sunset-light: #FFE8D6;
+  --sunset: #FF7043;
+  --sunset-dark: #E64A19;
+  --sand: #FDF6EC;
+  --sand-mid: #F5E6CC;
+  --sand-dark: #C8A97A;
+  --text-dark: #1A2E2D;
+  --text-mid: #3D5A58;
+  --text-muted: #7A9A98;
+  --bg: #F0F4F4;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #3B82F6;
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'DM Sans', sans-serif;
+  --sidebar-w: 240px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  color: var(--text-dark);
+  background: var(--white);
+  overflow-x: hidden;
+}
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.25s;
+  text-decoration: none;
+}
+.btn-primary   { background: var(--aqua-deep); color: white; }
+.btn-primary:hover  { background: var(--aqua-dark); transform: translateY(-1px); }
+.btn-sunset    { background: var(--sunset); color: white; }
+.btn-sunset:hover   { background: var(--sunset-dark); transform: translateY(-1px); }
+.btn-ghost     { background: transparent; color: var(--text-mid); border: 1.5px solid var(--sand-mid); }
+.btn-ghost:hover    { background: var(--sand); border-color: var(--aqua-dark); color: var(--aqua-deep); }
+.btn-danger    { background: var(--danger); color: white; }
+.btn-danger:hover   { background: #DC2626; transform: translateY(-1px); }
+.btn-success   { background: var(--success); color: white; }
+.btn-success:hover  { background: #059669; transform: translateY(-1px); }
+.btn-sm  { padding: 0.35rem 0.8rem; font-size: 0.76rem; }
+.btn-xs  { padding: 0.25rem 0.6rem; font-size: 0.72rem; }
+
+/* ── BADGES ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 50px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.badge-confirmed { background: #D1FAE5; color: #065F46; }
+.badge-pending   { background: #FEF3C7; color: #92400E; }
+.badge-cancelled { background: #FEE2E2; color: #991B1B; }
+.badge-flagged   { background: #FEE2E2; color: #991B1B; }
+
+/* ── FORM ELEMENTS ── */
+.form-group { margin-bottom: 1rem; }
+.form-group label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-mid);
+  margin-bottom: 0.3rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  border: 1.5px solid var(--sand-mid);
+  border-radius: 8px;
+  padding: 0.65rem 0.9rem;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  color: var(--text-dark);
+  background: white;
+  transition: all 0.2s;
+  outline: none;
+}
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: var(--aqua);
+  box-shadow: 0 0 0 3px rgba(78, 198, 192, 0.12);
+}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+
+/* ── TOAST ── */
+.toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.toast {
+  background: var(--text-dark);
+  color: white;
+  border-radius: 10px;
+  padding: 0.8rem 1.2rem;
+  font-size: 0.84rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  animation: toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  min-width: 240px;
+  max-width: 340px;
+}
+.toast.success { background: var(--success); }
+.toast.error   { background: var(--danger); }
+.toast.warning { background: var(--warning); color: #1A1A1A; }
+@keyframes toastIn  { from { opacity:0; transform: translateX(60px); } to { opacity:1; transform: translateX(0); } }
+@keyframes toastOut { to   { opacity:0; transform: translateX(60px); } }
