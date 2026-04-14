@@ -276,7 +276,7 @@ function renderConfirm() {
       const r = ROOMS.find(room => room.id === id);
       const roomSub = r.price24h * nights * cart[id];
       totalSub += roomSub;
-      roomBreakdownHtml += `<div class="summary-row"><span class="summary-label">${cart[id]}x ${r.emoji} ${r.name}</span><span>₱${roomSub.toLocaleString()}</span></div>`;
+      roomBreakdownHtml += `<div class="summary-row"><span class="summary-label">${cart[id]}x ${r.name}</span><span>₱${roomSub.toLocaleString()}</span></div>`;
     }
   });
 
@@ -361,7 +361,7 @@ async function submitReservation() {
       const total = sub + tax;
       
       grandTotal += total;
-      roomNamesHtml += `<div>${cart[id]}x ${r.emoji} ${r.name}</div>`;
+      roomNamesHtml += `<div>${cart[id]}x ${r.name}</div>`;
 
       bookingsArray.push({
         ref, 

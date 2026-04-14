@@ -36,8 +36,8 @@ exports.handler = async (event) => {
         name:      r.name,
         price12h:  r.price_12h,
         price24h:  r.price_24h,
+        unitIds:   r.unit_ids || [],
         cap:       r.cap,
-        emoji:     r.emoji,
         quantity: r.quantity,
         img:       r.img,
         badge:     r.badge,
@@ -57,9 +57,9 @@ exports.handler = async (event) => {
         name:       room.name,
         price_12h:  room.price12h,
         price_24h:  room.price24h,
-        quantity: room.quantity || 1,
+        unit_ids:   room.unitIds || [],
+        quantity:   room.unitIds && room.unitIds.length > 0 ? room.unitIds.length : 1,
         cap:        room.cap,
-        emoji:      room.emoji,
         img:        room.img || 'cottage',
         badge:      room.badge || '',
         amenities:  room.amenities || [],
@@ -77,9 +77,11 @@ exports.handler = async (event) => {
       if (updates.name      !== undefined) mapped.name       = updates.name;
       if (updates.price12h  !== undefined) mapped.price_12h  = updates.price12h;
       if (updates.price24h  !== undefined) mapped.price_24h  = updates.price24h;
-      if (updates.quantity  !== undefined) mapped.quantity   = updates.quantity;
+      if (updates.unitIds   !== undefined) {
+        mapped.unit_ids = updates.unitIds;
+        mapped.quantity = updates.unitIds.length > 0 ? updates.unitIds.length : 1;
+      }
       if (updates.cap       !== undefined) mapped.cap        = updates.cap;
-      if (updates.emoji     !== undefined) mapped.emoji      = updates.emoji;
       if (updates.badge     !== undefined) mapped.badge      = updates.badge;
       if (updates.amenities !== undefined) mapped.amenities  = updates.amenities;
       if (updates.active    !== undefined) mapped.active     = updates.active;

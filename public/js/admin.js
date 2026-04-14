@@ -489,6 +489,7 @@ async function renderRoomCards() {
 
       <div style="margin-bottom: 0.8rem;">
         <span class="badge" style="background:#E5E7EB;color:#374151;">Total Inventory: ${r.quantity||1}</span>
+        ${r.unitIds && r.unitIds.length > 0 ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.3rem;"><strong>Units:</strong> ${r.unitIds.join(', ')}</div>` : ''}
       </div>
         
       <div style="display:flex;gap:0.5rem;margin-top:0.8rem;">
@@ -544,7 +545,7 @@ function _setRoomImagePreview(url) {
 function openRoomModal() {
   document.getElementById('roomModalTitle').textContent = 'Add Room';
   document.getElementById('editRoomId').value = '';
-  ['rName','rId','rPrice12h','rPrice24h', 'rQuantity', 'rCap','rBadge','rAmenities'].forEach(id => document.getElementById(id).value = '');
+  ['rName','rId','rPrice12h','rPrice24h', 'rUnitIds', 'rCap','rBadge','rAmenities'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('rActive').checked = true;
   clearRoomImage();
   openModal('roomModal');
@@ -562,6 +563,7 @@ async function editRoom(id) {
   document.getElementById('rPrice24h').value  = r.price24h || 0;
   document.getElementById('rQuantity').value = r.quantity || 1;
   document.getElementById('rCap').value       = r.cap;
+  document.getElementById('rUnitIds').value = (r.unitIds || []).join(', ');
   document.getElementById('rBadge').value     = r.badge || '';
   document.getElementById('rAmenities').value = (r.amenities||[]).join(', ');
   document.getElementById('rActive').checked  = !!r.active;
@@ -570,29 +572,51 @@ async function editRoom(id) {
 }
 
 async function saveRoom() {
+  const editId    = document.getElementById('editRoomId').value;
+  const isEdit    = !!editId;
   const name      = document.getElementById('rName').value.trim();
-  const id        = document.getElementById('rId').value.trim().toLowerCase().replace(/\s+/g,'-');
-  const price12h  = +document.getElementById('rPrice12h').value;
-  const price24h  = +document.getElementById('rPrice24h').value;
-  const quantity = +document.getElementById('rQuantity').value || 1;
+  const idVal     = document.getElementById('rId').value.trim().toLowerCase().replace(/\s+/g,'-');
+  const price12h  = +document.getElementById('rPrice12h').value || 0;
+  const price24h  = +document.getElementById('rPrice24h').value || 0;
   const cap       = document.getElementById('rCap').value.trim();
   const badge     = document.getElementById('rBadge').value.trim();
   const imgUrl    = document.getElementById('rImgUrl').value;
   const amenities = document.getElementById('rAmenities').value.split(',').map(a => a.trim()).filter(Boolean);
   const active    = document.getElementById('rActive').checked;
-  const editId    = document.getElementById('editRoomId').value;
-  if (!name || !id || !price24h) { toast('Room name, ID and 24h price required.', 'error'); return; }
+  
+  // Handle the new Unit IDs
+  const unitString = document.getElementById('rUnitIds').value;
+  const unitIdsArray = unitString.split(',').map(s => s.trim()).filter(s => s !== '');
+
+  if (!name || (!isEdit && !idVal)) {
+    alert('Please provide a Room Name and ID.');
+    return;
+  }
+
+  // Build the complete payload
+  const payload = {
+    id: isEdit ? editId : idVal,
+    name: name,
+    price12h: price12h,
+    price24h: price24h,
+    cap: cap,
+    unitIds: unitIdsArray, // <-- This sends your "A1, A2, A3" list to the database!
+    badge: badge,
+    img: imgUrl,
+    amenities: amenities,
+    active: active
+  };
+
   try {
-    if (editId) {
-      await ABHC_DB.updateRoom(editId, { name, price12h, price24h, cap, badge, imgUrl, amenities, active });
+    if (isEdit) {
+      await ABHC_DB.updateRoom(editId, payload);
     } else {
-      await ABHC_DB.saveRoom({ id, name, price12h, price24h, cap, badge, imgUrl, amenities, active });
+      await ABHC_DB.saveRoom(payload);
     }
-    toast('Room saved! ✅', 'success');
     closeModal('roomModal');
     renderRoomCards();
   } catch (err) {
-    toast('Error: ' + err.message, 'error');
+    alert('Error saving room: ' + err.message);
   }
 }
 
