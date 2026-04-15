@@ -12,16 +12,23 @@ async function enforceAdminAuth() {
   const { data: { session } } = await window.supa.auth.getSession();
 
   if (!session) {
-    // Intruders are instantly sent to the login page.
-    // Using .replace() means they can't just hit the "Back" button to bypass it.
+    // Intruders are sent to the login page
     window.location.replace('login.html');
   } else {
-    // Authorized admins get to see the page!
-    // We wait for the page to finish loading before trying to change the body style.
-    document.addEventListener("DOMContentLoaded", () => {
-      document.body.style.opacity = '1';
-      document.body.style.transition = 'opacity 0.3s ease';
-    });
+    // Function to safely make the page visible
+    const revealPage = () => {
+      if (document.body) {
+        document.body.style.opacity = '1';
+        document.body.style.transition = 'opacity 0.3s ease';
+      }
+    };
+
+    // If the browser is still loading, wait. If it's already done, reveal immediately!
+    if (document.readyState === 'loading') {
+      document.addEventListener("DOMContentLoaded", revealPage);
+    } else {
+      revealPage();
+    }
   }
 }
 
