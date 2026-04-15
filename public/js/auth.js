@@ -9,18 +9,19 @@ window.supa = window.supabase.createClient(SUPA_URL, SUPA_ANON_KEY);
 
 // 3. The Security Gate (Checks if user is logged in)
 async function enforceAdminAuth() {
-  // Hide the page temporarily to prevent flashing the dashboard before kicking them out
-  document.body.style.opacity = '0';
-
   const { data: { session } } = await window.supa.auth.getSession();
 
   if (!session) {
-    // Intruders are sent to the login page
-    window.location.href = 'login.html';
+    // Intruders are instantly sent to the login page.
+    // Using .replace() means they can't just hit the "Back" button to bypass it.
+    window.location.replace('login.html');
   } else {
-    // Authorized admins get to see the page
-    document.body.style.opacity = '1';
-    document.body.style.transition = 'opacity 0.3s ease';
+    // Authorized admins get to see the page!
+    // We wait for the page to finish loading before trying to change the body style.
+    document.addEventListener("DOMContentLoaded", () => {
+      document.body.style.opacity = '1';
+      document.body.style.transition = 'opacity 0.3s ease';
+    });
   }
 }
 
