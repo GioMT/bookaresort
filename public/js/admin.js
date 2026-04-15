@@ -561,7 +561,6 @@ async function editRoom(id) {
   document.getElementById('rId').value        = r.id;
   document.getElementById('rPrice12h').value  = r.price12h || 0;
   document.getElementById('rPrice24h').value  = r.price24h || 0;
-  document.getElementById('rQuantity').value = r.quantity || 1;
   document.getElementById('rCap').value       = r.cap;
   document.getElementById('rUnitIds').value = (r.unitIds || []).join(', ');
   document.getElementById('rBadge').value     = r.badge || '';
