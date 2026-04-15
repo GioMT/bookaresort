@@ -280,8 +280,9 @@ function renderConfirm() {
     }
   });
 
-  const tax = Math.round(totalSub * 0.12);
-  const grandTotal = totalSub + tax;
+  // Replace the old tax math with this:
+  const tax = 0;
+  const grandTotal = totalSub;
 
   div.innerHTML = `
     <div style="font-family:var(--font-serif);font-size:1.1rem;color:var(--text-dark);margin-bottom:1rem;">Booking Summary</div>
@@ -291,12 +292,7 @@ function renderConfirm() {
     <hr style="border:none;border-top:1px dashed var(--sand-mid);margin:0.5rem 0;">
     ${roomBreakdownHtml}
     <hr style="border:none;border-top:1px dashed var(--sand-mid);margin:0.5rem 0;">
-    <div class="summary-row"><span class="summary-label">Subtotal</span><span>₱${totalSub.toLocaleString()}</span></div>
-    <div class="summary-row"><span class="summary-label">Tax (12%)</span><span>₱${tax.toLocaleString()}</span></div>
-    <div class="summary-row" style="border-top:1px solid var(--sand-mid);padding-top:0.7rem;margin-top:0.3rem;">
-      <span style="font-weight:500;">Grand Total</span>
-      <span style="font-size:1.1rem;color:var(--aqua-deep);font-weight:600;">₱${grandTotal.toLocaleString()}</span>
-    </div>`;
+    <div class="summary-row"><span class="summary-label">Total (Tax Inclusive)</span><span style="font-size:1.1rem;color:var(--aqua-deep);font-weight:600;">₱${grandTotal.toLocaleString()}</span></div>`;
 }
 
 // ── FLAGGED GUEST CHECK ───────────────────────────────────────────────────────
@@ -357,8 +353,8 @@ async function submitReservation() {
     if (cart[id] > 0) {
       const r = ROOMS.find(room => room.id === id);
       const sub = r.price24h * nights * cart[id];
-      const tax = Math.round(sub * 0.12);
-      const total = sub + tax;
+      const tax = 0;
+      const total = sub;
       
       grandTotal += total;
       roomNamesHtml += `<div>${cart[id]}x ${r.name}</div>`;
@@ -416,6 +412,89 @@ async function submitReservation() {
   ['guestFname','guestLname','guestEmail','guestPhone','guestReq'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('flaggedWarning').classList.remove('show');
 }
+
+// ── GUEST PHOTO FEED ──────────────────────────────────────────────────────────
+
+async function loadApprovedFeed() {
+  const container = document.getElementById('liveGuestFeed');
+  if (!container) return;
+  try {
+    const res = await fetch('/api/guest-feed?status=approved');
+    const posts = await res.json();
+    
+    container.innerHTML = posts.map(p => `
+      <div class="room-card" style="border-radius:12px;overflow:hidden;background:white;">
+        <img src="${p.image_url}" style="width:100%;height:220px;object-fit:cover;display:block;">
+        <div style="padding:1rem;">
+          <p style="font-size:0.85rem;color:var(--text-dark);font-style:italic;margin-bottom:0.5rem;">"${p.caption}"</p>
+          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:500;">— ${p.guest_name}</div>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) { console.error("Failed to load feed", e); }
+}
+
+async function submitFeedPost() {
+  const name = document.getElementById('feedName').value.trim();
+  const refNo = document.getElementById('feedRef').value.trim();
+  const caption = document.getElementById('feedCaption').value.trim();
+  const fileInput = document.getElementById('feedPhoto');
+  const btn = document.getElementById('feedSubmitBtn');
+
+  if (!name || !fileInput.files[0]) {
+    alert("Please provide your name and select a photo!");
+    return;
+  }
+
+  btn.textContent = "Uploading...";
+  btn.disabled = true;
+
+  const file = fileInput.files[0];
+  const ext = file.name.split('.').pop();
+  const reader = new FileReader();
+
+  reader.onload = async (e) => {
+    const payload = {
+      guestName: name,
+      guestRef: refNo,       // <-- Sending the new Reference Number
+      caption: caption,
+      imageBase64: e.target.result,
+      imageExt: ext
+    };
+
+    try {
+      const res = await fetch('/api/guest-feed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      
+      // The new success message!
+      alert("Your post has been submitted and will be reviewed for approval. Thank you for sharing your story!");
+      
+      // Clear the form
+      document.getElementById('feedName').value = '';
+      document.getElementById('feedRef').value = '';
+      document.getElementById('feedCaption').value = '';
+      fileInput.value = '';
+
+      // Hide the form and bring the "Share your story" button back
+      document.getElementById('feedFormContainer').style.display = 'none';
+      document.getElementById('openFeedFormBtn').style.display = 'inline-block';
+
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      btn.textContent = "Submit Story";
+      btn.disabled = false;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// Load the feed when the page starts
+loadApprovedFeed();
 
 // ── INIT CALENDARS ────────────────────────────────────────────────────────────
 renderCal('cal1', off1);

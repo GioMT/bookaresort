@@ -318,7 +318,7 @@ section { padding: 5rem 1.5rem; }
 }
 .room-option.selected .check-icon { display: flex; }
 .room-opt-emoji { font-size: 2rem; margin: 0.3rem 0; }
-.room-opt-photo { width: 100%; height: 80px; object-fit: cover; border-radius: 8px; margin: 0.3rem 0; display: block; }
+.room-opt-photo { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin: 0.3rem 0; display: block; }
 .room-opt-name  { font-weight: 500; font-size: 0.85rem; color: var(--text-dark); margin-bottom: 0.2rem; }
 .room-opt-price { font-size: 0.8rem; color: var(--aqua-dark); font-weight: 500; }
 .room-opt-cap   { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.2rem; }

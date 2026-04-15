@@ -273,6 +273,37 @@
   </div>
 </section>
 
+<section class="reviews-section" style="background:var(--sand);">
+  <div class="container">
+    <div class="reviews-header reveal">
+      <span class="section-label">Guest Memories</span>
+      <h2 class="section-title">Share Your <em>Moments</em></h2>
+      <p class="section-sub" style="margin:0 auto;text-align:center;">Tag us in your best resort photos to be featured on our live feed.</p>
+    </div>
+
+    <div style="text-align:center; margin-bottom: 2rem;">
+      <button class="btn-reserve" id="openFeedFormBtn" style="width:auto; padding: 0.8rem 2rem;" onclick="document.getElementById('feedFormContainer').style.display='block'; this.style.display='none';">Share your story</button>
+    </div>
+
+    <div id="feedFormContainer" class="booking-card reveal" style="max-width:600px; padding:2rem; margin-bottom:3rem; display:none;">
+      <div class="form-row">
+        <div class="form-group"><label>Name</label><input type="text" id="feedName" placeholder="Full name is not required."></div>
+        <div class="form-group"><label>Guest Ref No.</label><input type="text" id="feedRef" placeholder="e.g. ABHC-XYZ123"></div>
+      </div>
+      <div class="form-group"><label>Message / Caption</label><textarea id="feedCaption" rows="3" placeholder="How's your stay experience with us?"></textarea></div>
+      <div class="form-group"><label>Photo</label><input type="file" id="feedPhoto" accept="image/*" style="padding:0.45rem;"></div>
+      
+      <div style="display:flex; gap:1rem; margin-top: 1rem;">
+        <button class="btn-ghost" style="flex:1;" onclick="document.getElementById('feedFormContainer').style.display='none'; document.getElementById('openFeedFormBtn').style.display='inline-block';">Cancel</button>
+        <button class="btn-reserve" id="feedSubmitBtn" style="flex:2; margin-top:0;" onclick="submitFeedPost()">Submit Story</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1.5rem;" id="liveGuestFeed">
+      </div>
+  </div>
+</section>
+
 <!-- LOCATION -->
 <section class="location-section" id="location">
   <div class="location-inner">

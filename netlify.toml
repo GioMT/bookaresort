@@ -45,3 +45,13 @@
 
 [functions]
   node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/guest-feed"
+  to = "/.netlify/functions/guest-feed"
+  status = 200
+
+[[redirects]]
+  from = "/api/guest-feed/*"
+  to = "/.netlify/functions/guest-feed"
+  status = 200

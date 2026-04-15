@@ -37,7 +37,7 @@ function closeSidebar() {
 const PAGE_TITLES = {
   dashboard: 'Revenue Dashboard', bookings: 'Booking History',
   calendar:  'Availability Calendar', rooms: 'Manage Rooms',
-  repairs:   'Repair Costs', guests: 'Flagged Guests', export: 'Export Data',
+  repairs:   'Repair Costs', guests: 'Flagged Guests', export: 'Export Data', feed: 'Photo Feed',
 };
 
 function navTo(page) {
@@ -49,6 +49,7 @@ function navTo(page) {
   if (page === 'dashboard') renderDashboard();
   if (page === 'bookings')  renderBookings();
   if (page === 'rooms')     renderRoomCards();
+  if (page === 'feed')      renderAdminFeed();
   if (page === 'repairs')   renderRepairs();
   if (page === 'guests')    renderFlaggedTable();
   if (page === 'calendar')  renderAdminCal();
@@ -369,15 +370,14 @@ function calcBTotal() {
     totalBase = pricePer24 * days; // Use the 24h price multiplied by days
   }
 
-  const tax   = Math.round(totalBase * 0.12);
-  const total = totalBase + tax;
+  const tax   = 0;
+  const total = totalBase;
+  
   document.getElementById('bTotalPreview').innerHTML = `
     <div class="rev-line"><span>Stay Type</span><span>${_currentStayType === '12hr' ? '🌙 12-Hour' : '☀️ 24-Hour'}</span></div>
     <div class="rev-line"><span>Duration</span><span>${durationLabel}</span></div>
     <div class="rev-line"><span>Room Rate</span><span>${rateLabel}</span></div>
-    <div class="rev-line"><span>Subtotal</span><span>${fmtMoney(totalBase)}</span></div>
-    <div class="rev-line"><span>Tax (12%)</span><span>${fmtMoney(tax)}</span></div>
-    <div class="rev-line"><span><strong>Total</strong></span><span style="color:var(--aqua-deep);"><strong>${fmtMoney(total)}</strong></span></div>`;
+    <div class="rev-line"><span><strong>Total (Tax Inclusive)</strong></span><span style="color:var(--aqua-deep);"><strong>${fmtMoney(total)}</strong></span></div>`;
 }
 
 async function saveBooking() {
@@ -412,7 +412,7 @@ async function saveBooking() {
     checkOut = fmtD(coDate); nights = days; subtotal = room.price24h * days; // <-- Use the 24-hour price
   }
 
-  const tax = Math.round(subtotal * 0.12), total = subtotal + tax;
+  const tax = 0, total = subtotal;
   const payload = {
     guestFname:fn, guestLname:ln, guestName:fn+' '+ln,
     guestEmail:em, guestPhone:ph, roomId:rid, roomName:room.name,
@@ -834,6 +834,50 @@ async function exportCSV(type) {
   a.download = filename + '.csv';
   a.click();
   toast('Exported: ' + filename + '.csv', 'success');
+}
+
+// ── ADMIN PHOTO FEED ──────────────────────────────────────────────────────────
+async function renderAdminFeed() {
+  const container = document.getElementById('adminFeedGrid');
+  container.innerHTML = '<p>Loading...</p>';
+  try {
+    const res = await fetch('/api/guest-feed');
+    const posts = await res.json();
+
+    container.innerHTML = posts.map(p => `
+      <div style="background:var(--sand);border-radius:12px;overflow:hidden;border:1px solid var(--sand-mid);">
+        <img src="${p.image_url}" style="width:100%;height:180px;object-fit:cover;display:block;">
+        <div style="padding:1rem;">
+          
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+            <div>
+              <div style="font-weight:600;font-size:0.9rem;">${p.guest_name}</div>
+              ${p.guest_ref ? `<div style="font-size:0.75rem; color:var(--aqua-deep); font-family:monospace;">Ref: ${p.guest_ref}</div>` : ''}
+            </div>
+            <span class="badge ${p.status === 'approved' ? 'badge-confirmed' : p.status === 'rejected' ? 'badge-cancelled' : 'badge-pending'}">${p.status.toUpperCase()}</span>
+          </div>
+          
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;height:40px;overflow:hidden;">"${p.caption}"</p>
+          <div style="display:flex;gap:0.5rem;">
+            <button class="btn btn-success btn-sm" style="flex:1;" onclick="updatePostStatus('${p.id}', 'approved')" ${p.status === 'approved' ? 'disabled' : ''}>✓ Approve</button>
+            <button class="btn btn-danger btn-sm" style="flex:1;" onclick="updatePostStatus('${p.id}', 'rejected')" ${p.status === 'rejected' ? 'disabled' : ''}>✕ Reject</button>
+          </div>
+        </div>
+      </div>
+    `).join('') || '<p>No posts yet.</p>';
+  } catch (e) { container.innerHTML = `<p style="color:red;">Error loading feed: ${e.message}</p>`; }
+}
+
+async function updatePostStatus(id, status) {
+  try {
+    await fetch('/api/guest-feed', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status })
+    });
+    toast(`Post ${status}!`, status === 'approved' ? 'success' : 'error');
+    renderAdminFeed();
+  } catch (e) { alert("Error: " + e.message); }
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
