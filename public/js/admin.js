@@ -470,9 +470,9 @@ async function renderRoomCards() {
   document.getElementById('roomsGrid').innerHTML = rooms.map(r => `
     <div class="card" style="transition:all 0.3s;">
       <div style="border-radius:10px;overflow:hidden;margin-bottom:1rem;height:120px;background:var(--sand-mid);">
-        ${r.imgUrl
-          ? `<img src="${r.imgUrl}" alt="${r.name}" style="width:100%;height:100%;object-fit:cover;display:block;">`
-          : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.8rem;">No photo</div>`}
+        ${r.img
+        ? `<img src="${r.img}" alt="${r.name}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.8rem;">No photo</div>`}
       </div>
       <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:1rem;">
         <div>
@@ -566,7 +566,7 @@ async function editRoom(id) {
   document.getElementById('rBadge').value     = r.badge || '';
   document.getElementById('rAmenities').value = (r.amenities||[]).join(', ');
   document.getElementById('rActive').checked  = !!r.active;
-  _setRoomImagePreview(r.imgUrl || '');
+  _setRoomImagePreview(r.img || '');
   openModal('roomModal');
 }
 

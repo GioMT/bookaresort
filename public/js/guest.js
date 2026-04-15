@@ -54,8 +54,8 @@ async function renderRoomsSection() {
   grid.innerHTML = rooms.map((r, i) => `
     <article class="room-card reveal stagger-${i+1}">
       <div class="room-img ${r.img}">
-        <div class="room-img ${r.imgUrl ? 'has-photo' : r.img||'cottage'}">
-  ${r.imgUrl ? `<img src="${r.imgUrl}" alt="${r.name}">` : `<div class="room-img-inner">${r.badge||'🏠'}</div>`}
+        <div class="room-img ${r.img ? 'has-photo' : r.img||'cottage'}">
+  ${r.img ? `<img src="${r.img}" alt="${r.name}">` : `<div class="room-img-inner">${r.badge||'🏠'}</div>`}
         <span class="room-badge">${r.badge}</span>
       </div>
       <div class="room-body">
@@ -230,7 +230,7 @@ const availResults = await Promise.all(ROOMS.map(r => ABHC_DB.getRoomAvailabilit
     
     return `<div class="room-option ${avail===0?'unavail-room':''}" style="cursor:default;">
       <span class="room-opt-badge ${avail>0?'avail-badge':'unavail-badge'}">${avail>0 ? `✅ ${avail} Available` : '❌ Fully Booked'}</span>
-      ${r.imgUrl ? `<img class="room-opt-photo" src="${r.imgUrl}" alt="${r.name}">` : `<div class="room-opt-emoji">🏠</div>`}
+      ${r.img ? `<img class="room-opt-photo" src="${r.img}" alt="${r.name}">` : `<div class="room-opt-emoji">🏠</div>`}
       <div class="room-opt-name">${r.name}</div>
       <div class="room-opt-price">₱${r.price24h.toLocaleString()} / night</div>
       <div class="room-opt-cap">👤 ${r.cap}</div>
