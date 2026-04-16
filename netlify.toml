@@ -2,9 +2,6 @@
   publish = "public"
   functions = "netlify/functions"
 
-[build.environment]
-  SECRETS_SCAN_OMIT_PATHS = "public/js/auth.js"
-
 # Redirect all API calls from /api/* → netlify functions
 [[redirects]]
   from = "/api/bookings"
@@ -57,4 +54,9 @@
 [[redirects]]
   from = "/api/guest-feed/*"
   to = "/.netlify/functions/guest-feed"
+  status = 200
+
+[[redirects]]
+  from = "/api/add-employee"
+  to = "/.netlify/functions/add-employee"
   status = 200

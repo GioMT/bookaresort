@@ -61,9 +61,33 @@ exports.handler = async (event) => {
         repair_cost:   booking.repairCost || 0,
         status:        booking.status || 'confirmed',
         flagged:       booking.flagged || false,
+        created_by_staff: booking.createdByStaff || null,
       }));
 
       const { data, error } = await supabase.from('bookings').insert(inserts).select();
+
+      // --- CREATE SYSTEM LOGS ---
+      if (!error) {
+        const logs = bookingsArray.map(b => {
+          const isStaff = !!b.createdByStaff;
+          const source = isStaff ? 'Internal' : 'Online';
+          const actor = isStaff ? b.createdByStaff : b.guestName;
+          
+          // Format the stay duration
+          const stayStr = b.stayType === '12hr' || b.nights === 0.5 ? '12h' : `${b.nights} day(s)`;
+          
+          // Build the exact sentence structure you requested!
+          const msg = isStaff 
+            ? `booked ${b.roomQuantity || 1}x ${b.roomName} on behalf of ${b.guestName} for ${stayStr} (${b.checkIn} to ${b.checkOut}) with Ref: ${b.ref}`
+            : `booked ${b.roomQuantity || 1}x ${b.roomName} for ${stayStr} (${b.checkIn} to ${b.checkOut}) with Ref: ${b.ref}`;
+
+          return { source: source, actor: actor, message: msg };
+        });
+        
+        await supabase.from('system_logs').insert(logs);
+      }
+      // --------------------------
+      
       if (error) throw error;
       return { statusCode: 201, headers, body: JSON.stringify(data) };
     }

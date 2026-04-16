@@ -2,7 +2,7 @@
    admin.css — Admin panel styles
    Avellano's Beach Hut Cottage
    ============================================================ */
-body { opacity: 0; }
+
 html, body { height: 100%; background: var(--bg); }
 
 /* SIDEBAR */

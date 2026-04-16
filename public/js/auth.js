@@ -32,8 +32,30 @@ async function enforceAdminAuth() {
   }
 }
 
-// 4. Logout Function
+// 4. Logout Function (Upgraded with System Log Sensor)
 async function handleLogout() {
+  // 1. Try to log the action while the user is still technically logged in
+  try {
+    const { data: { session } } = await window.supa.auth.getSession();
+    
+    if (session) {
+      // Look up their real name from the staff profiles table
+      const { data: profile } = await window.supa.from('staff_profiles').select('first_name, last_name').eq('id', session.user.id).single();
+      const name = profile ? `${profile.first_name} ${profile.last_name}` : 'Unknown Staff';
+      
+      // Write the action to the System Logs
+      await window.supa.from('system_logs').insert([{ 
+        source: 'Internal', 
+        actor: name, 
+        message: `logged out of the admin panel` 
+      }]);
+    }
+  } catch (e) { 
+    // We leave this catch block empty so that if the log fails for any reason,
+    // the system ignores it and successfully logs the user out anyway.
+  }
+  
+  // 2. Actually destroy the session and kick them out to the login page
   await window.supa.auth.signOut();
-  window.location.href = 'login.html';
+  window.location.replace('login.html');
 }

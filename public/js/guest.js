@@ -228,6 +228,20 @@ const availResults = await Promise.all(ROOMS.map(r => ABHC_DB.getRoomAvailabilit
     const qtyInCart = cart[r.id] || 0;
     const total = (r.price24h * nights * qtyInCart).toLocaleString();
     
+    let unitSelectHtml = '';
+    // If they have selected a quantity, AND this room has specific units defined in the admin panel, show the dropdown!
+    if (qtyInCart > 0 && r.unitIds && r.unitIds.length > 0) {
+      const options = r.unitIds.map(u => `<option value="${u}">${u}</option>`).join('');
+      unitSelectHtml = `
+        <div style="margin-top:1.2rem;text-align:left;">
+          <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:0.3rem;">Select Unit Preference (Optional)</label>
+          <select id="prefUnit_${r.id}" style="width:100%;padding:0.5rem;font-size:0.85rem;border:1.5px solid var(--sand-mid);border-radius:8px;outline:none;">
+            <option value="">Any available unit</option>
+            ${options}
+          </select>
+        </div>`;
+    }
+
     return `<div class="room-option ${avail===0?'unavail-room':''}" style="cursor:default;">
       <span class="room-opt-badge ${avail>0?'avail-badge':'unavail-badge'}">${avail>0 ? `✅ ${avail} Available` : '❌ Fully Booked'}</span>
       ${r.img ? `<img class="room-opt-photo" src="${r.img}" alt="${r.name}">` : `<div class="room-opt-emoji">🏠</div>`}
@@ -235,12 +249,14 @@ const availResults = await Promise.all(ROOMS.map(r => ABHC_DB.getRoomAvailabilit
       <div class="room-opt-price">₱${r.price24h.toLocaleString()} / night</div>
       <div class="room-opt-cap">👤 ${r.cap}</div>
       
-      <div style="display:flex;align-items:center;justify-content:center;gap:1rem;margin-top:1rem;">
-        <button class="btn btn-ghost btn-sm" style="width:32px;height:32px;padding:0;" onclick="updateCart('${r.id}', -1, ${avail})" ${qtyInCart===0?'disabled':''}>-</button>
-        <span style="font-weight:600;font-size:1.1rem;width:20px;text-align:center;">${qtyInCart}</span>
-        <button class="btn btn-primary btn-sm" style="width:32px;height:32px;padding:0;" onclick="updateCart('${r.id}', 1, ${avail})" ${qtyInCart===avail?'disabled':''}>+</button>
+      <div style="display:flex;align-items:center;justify-content:center;gap:1.2rem;margin-top:1rem;">
+        <button class="btn btn-ghost btn-sm" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;line-height:0;" onclick="updateCart('${r.id}', -1, ${avail})" ${qtyInCart===0?'disabled':''}>&minus;</button>
+        <span style="font-weight:600;font-size:1.2rem;width:24px;text-align:center;">${qtyInCart}</span>
+        <button class="btn btn-primary btn-sm" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem;line-height:0;" onclick="updateCart('${r.id}', 1, ${avail})" ${qtyInCart===avail?'disabled':''}>+</button>
       </div>
+      
       ${qtyInCart > 0 ? `<div class="room-opt-total">Room Subtotal: ₱${total}</div>` : ''}
+      ${unitSelectHtml}
     </div>`;
   }).join('');
 
@@ -353,33 +369,29 @@ async function submitReservation() {
     if (cart[id] > 0) {
       const r = ROOMS.find(room => room.id === id);
       const sub = r.price24h * nights * cart[id];
-      const tax = 0;
+      const tax = 0; // Tax inclusive
       const total = sub;
       
       grandTotal += total;
       roomNamesHtml += `<div>${cart[id]}x ${r.name}</div>`;
 
+      // Grab their unit preference if they selected one
+      const prefDropdown = document.getElementById(`prefUnit_${id}`);
+      const preferredUnit = prefDropdown ? prefDropdown.value : '';
+      
+      // Attach the preference to their special requests so it shows up on your admin panel!
+      let finalReq = req;
+      if (preferredUnit) {
+        finalReq = finalReq ? `[Preferred Unit: ${preferredUnit}] - ${finalReq}` : `[Preferred Unit: ${preferredUnit}]`;
+      }
+
       bookingsArray.push({
-        ref, 
-        roomId: r.id, 
-        roomName: r.name, 
-        roomQuantity: cart[id],
-        guestName: fn+' '+ln, 
-        guestFname: fn, 
-        guestLname: ln,
-        guestEmail: em, 
-        guestPhone: ph,
-        checkIn: selIn, 
-        checkOut: selOut, 
-        nights,
-        subtotal: sub, 
-        tax, 
-        total,
-        specialReq: req, 
-        notes: '', 
-        repairCost: 0,
-        status: 'confirmed', 
-        flagged: false,
+        ref, roomId: r.id, roomName: r.name, roomQuantity: cart[id],
+        guestName: fn+' '+ln, guestFname: fn, guestLname: ln,
+        guestEmail: em, guestPhone: ph, checkIn: selIn, checkOut: selOut, 
+        nights, subtotal: sub, tax, total,
+        specialReq: finalReq, // Saved here!
+        notes: '', repairCost: 0, status: 'confirmed', flagged: false,
         createdAt: new Date().toISOString(),
       });
     }

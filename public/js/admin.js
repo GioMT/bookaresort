@@ -37,7 +37,7 @@ function closeSidebar() {
 const PAGE_TITLES = {
   dashboard: 'Revenue Dashboard', bookings: 'Booking History',
   calendar:  'Availability Calendar', rooms: 'Manage Rooms',
-  repairs:   'Repair Costs', guests: 'Flagged Guests', export: 'Export Data', feed: 'Photo Feed',
+  repairs:   'Repair Costs', guests: 'Flagged Guests', export: 'Export Data', feed: 'Photo Feed', staff: 'Staff Accounts', logs: 'System Logs',
 };
 
 function navTo(page) {
@@ -46,6 +46,7 @@ function navTo(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
   document.getElementById('topbarTitle').textContent = PAGE_TITLES[page] || page;
+  
   if (page === 'dashboard') renderDashboard();
   if (page === 'bookings')  renderBookings();
   if (page === 'rooms')     renderRoomCards();
@@ -53,6 +54,8 @@ function navTo(page) {
   if (page === 'repairs')   renderRepairs();
   if (page === 'guests')    renderFlaggedTable();
   if (page === 'calendar')  renderAdminCal();
+  if (page === 'logs')      renderLogsTab();
+
   if (window.innerWidth <= 900) closeSidebar();
 }
 
@@ -223,7 +226,14 @@ async function renderBookingsTable() {
       <td>${fmt(ci)}</td><td>${fmt(co)}</td>
       <td style="text-align:center;">${b.stay_type==='12hr'||b.stayType==='12hr' ? '🌙 12hr' : (b.nights||0)+' day'+(b.nights>1?'s':'')}</td>
       <td><strong>${fmtMoney(b.total)}</strong>${rc?`<div style="font-size:0.72rem;color:var(--danger);">Repair: ${fmtMoney(rc)}</div>`:''}</td>
-      <td><span class="badge badge-${b.status||'confirmed'}">${(b.status||'confirmed').charAt(0).toUpperCase()+(b.status||'confirmed').slice(1)}</span></td>
+      
+      <td>
+        <span class="badge badge-${b.status||'confirmed'}">${(b.status||'confirmed').charAt(0).toUpperCase()+(b.status||'confirmed').slice(1)}</span>
+        ${b.created_by_staff 
+          ? `<div style="font-size:0.7rem;color:var(--sunset);margin-top:0.3rem;font-weight:500;">👤 ${b.created_by_staff}</div>` 
+          : `<div style="font-size:0.7rem;color:var(--aqua-deep);margin-top:0.3rem;font-weight:500;">🌐 Online</div>`}
+      </td>
+
       <td style="max-width:160px;"><div style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.notes||'—'}</div></td>
       <td>
         <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
@@ -235,7 +245,7 @@ async function renderBookingsTable() {
       </td>
     </tr>`;
   }).join('') || '<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:2rem;">No bookings found.</td></tr>';
-
+  
   // Pagination
   const pag = document.getElementById('bookingsPag');
   pag.innerHTML = '';
@@ -264,6 +274,24 @@ async function viewBooking(id) {
   const co    = b.check_out   || b.checkOut;
   const rc    = b.repair_cost || b.repairCost || 0;
   const req   = b.special_req || b.specialReq || '';
+
+  // Generate Internal Notes Timeline (Locked to Manila Time)
+  const notes = b.internal_notes || [];
+  const notesHtml = notes.map(n => {
+    const d = new Date(n.date);
+    const dateStr = d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'short', day: 'numeric' });
+    const timeStr = d.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit' });
+    
+    return `
+    <div style="background:var(--bg); border:1px solid var(--sand-mid); border-radius:8px; padding:0.8rem; margin-bottom:0.5rem;">
+      <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.4rem;">
+        <span style="font-weight:600; color:var(--text-main);">👤 ${n.staff}</span>
+        <span>${dateStr} at ${timeStr}</span>
+      </div>
+      <div style="font-size:0.85rem;">${n.text}</div>
+    </div>
+  `}).join('');
+
   document.getElementById('bookingDetailContent').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1rem;">
       <div><div class="stat-label" style="font-size:0.72rem;">Reference</div><div style="font-family:monospace;font-size:1rem;color:var(--aqua-deep);font-weight:600;">${b.ref}</div></div>
@@ -271,6 +299,7 @@ async function viewBooking(id) {
     </div>
     <div style="background:var(--sand);border-radius:12px;padding:1rem;margin-bottom:1rem;">
       <div class="rev-line"><span style="color:var(--text-muted);">Guest</span><span><strong>${name}</strong></span></div>
+      <div class="rev-line"><span style="color:var(--text-muted);">Booked By</span><span style="color:var(--sunset);font-weight:500;">${b.created_by_staff ? `👤 ${b.created_by_staff} (Staff)` : '🌐 Guest (Online)'}</span></div>
       <div class="rev-line"><span style="color:var(--text-muted);">Email</span><span>${email}</span></div>
       <div class="rev-line"><span style="color:var(--text-muted);">Phone</span><span>${phone}</span></div>
       <div class="rev-line"><span style="color:var(--text-muted);">Room</span><span>${room}</span></div>
@@ -283,17 +312,30 @@ async function viewBooking(id) {
       <div class="rev-line"><span><strong>Total</strong></span><span style="color:var(--aqua-deep);font-weight:600;">${fmtMoney(b.total)}</span></div>
     </div>
     ${req?`<div style="margin-bottom:0.8rem;"><div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem;">Special Requests</div><div style="font-size:0.85rem;">${req}</div></div>`:''}
-    ${b.notes?`<div><div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem;">Admin Notes</div><div style="font-size:0.85rem;background:var(--aqua-light);padding:0.8rem;border-radius:8px;">${b.notes}</div></div>`:''}`;
+    ${b.notes?`<div><div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem;">Admin Notes</div><div style="font-size:0.85rem;background:var(--aqua-light);padding:0.8rem;border-radius:8px;">${b.notes}</div></div>`:''}
+    
+    <div style="margin-top: 2rem; border-top: 1px solid var(--sand-mid); padding-top: 1.5rem;">
+      <h4 style="font-size: 1rem; margin-bottom: 1rem;">Internal Staff Notes</h4>
+      
+      <div style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem; padding-right: 0.5rem;">
+        ${notesHtml || '<div style="font-size:0.85rem; color:var(--text-muted); font-style:italic;">No internal notes for this booking yet.</div>'}
+      </div>
+      
+      <div style="display:flex; flex-direction:column; gap:0.5rem;">
+        <textarea id="newNote_${b.id}" rows="2" placeholder="Add a new internal note (e.g. 'Guest paid 50% downpayment')" style="padding:0.6rem; border-radius:8px; border:1px solid var(--sand-mid); font-family:inherit; font-size:0.85rem; resize:vertical;"></textarea>
+        <button class="btn btn-primary btn-sm" id="btnNote_${b.id}" style="align-self:flex-end;" onclick="submitInternalNote('${b.id}')">+ Save Note</button>
+      </div>
+    </div>
+  `;
   document.getElementById('editFromDetailBtn').onclick = () => { closeModal('bookingDetailModal'); editBooking(id); };
   openModal('bookingDetailModal');
 }
-
-
 
 async function deleteBooking(id) {
   if (!confirm('Delete this booking? This cannot be undone.')) return;
   await ABHC_DB.deleteBooking(id);
   toast('Booking deleted.', 'success');
+  await logSystemAction(`deleted a booking record from the database (ID: ${id})`);
   renderBookingsTable();
 }
 
@@ -304,6 +346,7 @@ async function toggleFlag(id) {
   const newFlagged = !b.flagged;
   await ABHC_DB.updateBooking(id, { flagged: newFlagged });
   toast(newFlagged ? 'Booking flagged 🚩' : 'Flag removed.', newFlagged ? 'warning' : 'success');
+  await logSystemAction(`${newFlagged ? 'flagged' : 'removed the flag from'} guest booking Ref: ${b.ref}`);
   renderBookingsTable();
 }
 
@@ -349,7 +392,6 @@ function calcBTotal() {
   const opt = document.getElementById('bRoom').selectedOptions[0];
   if (!opt) return;
 
-  // Pull the safe data attributes instead of reading the text
   const pricePer12 = parseInt(opt.dataset.p12) || 0;
   const pricePer24 = parseInt(opt.dataset.p24) || 0;
   
@@ -360,14 +402,14 @@ function calcBTotal() {
     if (!ci) { document.getElementById('bTotalPreview').innerHTML = ''; return; }
     durationLabel = '12-Hour Stay';
     rateLabel = `${fmtMoney(pricePer12)} / 12h`;
-    totalBase = pricePer12; // Use exactly the 12h price
+    totalBase = pricePer12; 
   } else {
     const ci   = document.getElementById('bCheckIn24').value;
     const days = parseInt(document.getElementById('bDays').value) || 1;
     if (!ci || days < 1) { document.getElementById('bTotalPreview').innerHTML = ''; return; }
     durationLabel = `${days} Day${days>1?'s':''}`;
     rateLabel = `${fmtMoney(pricePer24)} / 24h`;
-    totalBase = pricePer24 * days; // Use the 24h price multiplied by days
+    totalBase = pricePer24 * days; 
   }
 
   const tax   = 0;
@@ -403,33 +445,47 @@ async function saveBooking() {
     if (!checkIn) { toast('Please select a check-in date.','error'); return; }
     checkOut = checkIn;
     nights   = 0.5;
-    subtotal = room.price12h; // <-- Directly use the 12-hour price
+    subtotal = room.price12h; 
   } else {
     checkIn      = document.getElementById('bCheckIn24').value;
     const days   = parseInt(document.getElementById('bDays').value) || 1;
     if (!checkIn || days < 1) { toast('Please select a check-in date and number of days.','error'); return; }
     const coDate = new Date(checkIn); coDate.setDate(coDate.getDate() + days);
-    checkOut = fmtD(coDate); nights = days; subtotal = room.price24h * days; // <-- Use the 24-hour price
+    checkOut = fmtD(coDate); nights = days; subtotal = room.price24h * days; 
   }
 
   const tax = 0, total = subtotal;
+  let staffStamp = null;
+  
+  if (!editId) {
+    const { data: { session } } = await window.supa.auth.getSession();
+    if (session) {
+      const { data: profile } = await window.supa.from('staff_profiles').select('first_name, last_name').eq('id', session.user.id).single();
+      if (profile) staffStamp = `${profile.first_name} ${profile.last_name}`;
+    }
+  }
+
   const payload = {
     guestFname:fn, guestLname:ln, guestName:fn+' '+ln,
     guestEmail:em, guestPhone:ph, roomId:rid, roomName:room.name,
     checkIn, checkOut, checkInTime, nights, stayType,
     subtotal, tax, total, specialReq:req, notes, status,
+    createdByStaff: staffStamp 
   };
 
   try {
     if (editId) {
       await ABHC_DB.updateBooking(editId, payload);
       toast('Booking updated! ✅', 'success');
+      await logSystemAction(`updated booking details for ${fn} ${ln} (Status: ${status.toUpperCase()})`);
     } else {
+      const newRef = 'ABHC-'+Date.now().toString(36).toUpperCase().slice(-6);
       await ABHC_DB.addBooking({ ...payload,
-        ref:'ABHC-'+Date.now().toString(36).toUpperCase().slice(-6),
+        ref: newRef,
         repairCost:0, flagged:false, createdAt:new Date().toISOString(),
       });
       toast('Booking created! ✅', 'success');
+      await logSystemAction(`manually created a new booking for ${fn} ${ln} (Ref: ${newRef})`);
     }
     closeModal('bookingModal');
     renderBookingsTable();
@@ -500,7 +556,6 @@ async function renderRoomCards() {
     </div>`).join('');
 }
 
-// Image upload helpers
 function handleImgUpload(input) {
   const file = input.files[0];
   if (!file) return;
@@ -562,7 +617,7 @@ async function editRoom(id) {
   document.getElementById('rPrice12h').value  = r.price12h || 0;
   document.getElementById('rPrice24h').value  = r.price24h || 0;
   document.getElementById('rCap').value       = r.cap;
-  document.getElementById('rUnitIds').value = (r.unitIds || []).join(', ');
+  document.getElementById('rUnitIds').value   = (r.unitIds || []).join(', ');
   document.getElementById('rBadge').value     = r.badge || '';
   document.getElementById('rAmenities').value = (r.amenities||[]).join(', ');
   document.getElementById('rActive').checked  = !!r.active;
@@ -582,28 +637,14 @@ async function saveRoom() {
   const imgUrl    = document.getElementById('rImgUrl').value;
   const amenities = document.getElementById('rAmenities').value.split(',').map(a => a.trim()).filter(Boolean);
   const active    = document.getElementById('rActive').checked;
-  
-  // Handle the new Unit IDs
   const unitString = document.getElementById('rUnitIds').value;
   const unitIdsArray = unitString.split(',').map(s => s.trim()).filter(s => s !== '');
 
-  if (!name || (!isEdit && !idVal)) {
-    alert('Please provide a Room Name and ID.');
-    return;
-  }
+  if (!name || (!isEdit && !idVal)) { alert('Please provide a Room Name and ID.'); return; }
 
-  // Build the complete payload
   const payload = {
-    id: isEdit ? editId : idVal,
-    name: name,
-    price12h: price12h,
-    price24h: price24h,
-    cap: cap,
-    unitIds: unitIdsArray, // <-- This sends your "A1, A2, A3" list to the database!
-    badge: badge,
-    img: imgUrl,
-    amenities: amenities,
-    active: active
+    id: isEdit ? editId : idVal, name: name, price12h: price12h, price24h: price24h,
+    cap: cap, unitIds: unitIdsArray, badge: badge, img: imgUrl, amenities: amenities, active: active
   };
 
   try {
@@ -614,9 +655,8 @@ async function saveRoom() {
     }
     closeModal('roomModal');
     renderRoomCards();
-  } catch (err) {
-    alert('Error saving room: ' + err.message);
-  }
+    await logSystemAction(`${isEdit ? 'updated details for' : 'created a new room named'} ${name}`);
+  } catch (err) { alert('Error saving room: ' + err.message); }
 }
 
 async function toggleRoomActive(id) {
@@ -625,6 +665,7 @@ async function toggleRoomActive(id) {
   if (!r) return;
   await ABHC_DB.updateRoom(id, { active: !r.active });
   toast(`Room ${!r.active?'activated':'deactivated'}.`, 'success');
+  await logSystemAction(`${!r.active?'activated':'deactivated'} the room/cottage: ${r.name}`);
   renderRoomCards();
 }
 
@@ -632,6 +673,7 @@ async function deleteRoom(id) {
   if (!confirm('Delete this room? Existing bookings will not be affected.')) return;
   await ABHC_DB.deleteRoom(id);
   toast('Room deleted.', 'success');
+  await logSystemAction(`deleted a room/cottage from the database (ID: ${id})`);
   renderRoomCards();
 }
 
@@ -668,15 +710,15 @@ async function addRepair() {
     ['repairRef','repairDesc','repairAmt'].forEach(id => document.getElementById(id).value = '');
     renderRepairs();
     renderDashboard();
-  } catch (err) {
-    toast('Error: ' + err.message, 'error');
-  }
+    await logSystemAction(`logged a new repair cost of ₱${amt.toLocaleString()} for: ${desc}`);
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
 }
 
 async function deleteRepair(id) {
   if (!confirm('Remove this repair entry?')) return;
   await ABHC_DB.deleteRepair(id);
   toast('Repair cost removed.', 'success');
+  await logSystemAction(`removed a repair cost entry from the ledger`);
   renderRepairs();
   renderDashboard();
 }
@@ -712,15 +754,15 @@ async function addFlaggedGuest() {
     toast('Guest flagged! 🚩', 'warning');
     ['flagName','flagEmail','flagReason'].forEach(id => document.getElementById(id).value = '');
     renderFlaggedTable();
-  } catch (err) {
-    toast('Error: ' + err.message, 'error');
-  }
+    await logSystemAction(`added ${name || email} to the Flagged Guest Registry (${severity} severity)`);
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
 }
 
 async function removeFlaggedGuest(id) {
   if (!confirm('Remove this flag? This cannot be undone.')) return;
   await ABHC_DB.removeFlaggedGuest(id);
   toast('Flag removed.', 'success');
+  await logSystemAction(`removed a guest from the Flagged Registry`);
   renderFlaggedTable();
 }
 
@@ -834,6 +876,7 @@ async function exportCSV(type) {
   a.download = filename + '.csv';
   a.click();
   toast('Exported: ' + filename + '.csv', 'success');
+  await logSystemAction(`exported ${type} data to a CSV file`);
 }
 
 // ── ADMIN PHOTO FEED ──────────────────────────────────────────────────────────
@@ -876,8 +919,144 @@ async function updatePostStatus(id, status) {
       body: JSON.stringify({ id, status })
     });
     toast(`Post ${status}!`, status === 'approved' ? 'success' : 'error');
+    await logSystemAction(`${status === 'approved' ? 'approved' : 'rejected'} a guest memory photo for the public feed`);
     renderAdminFeed();
   } catch (e) { alert("Error: " + e.message); }
+}
+
+// ── STAFF ACCOUNTS ──────────────────────────────────────────────────────────
+async function createEmployee() {
+  const fName = document.getElementById('empFName').value.trim();
+  const lName = document.getElementById('empLName').value.trim();
+  const phone = document.getElementById('empPhone').value.trim();
+  const email = document.getElementById('empEmail').value.trim();
+  const pass = document.getElementById('empPass').value;
+  const btn = document.getElementById('btnCreateEmp');
+  const msg = document.getElementById('empMsg');
+
+  if (!fName || !lName || !email || pass.length < 6) {
+    msg.textContent = "Please fill out all required fields (Password min 6 chars).";
+    msg.style.color = "var(--danger)"; return;
+  }
+  btn.textContent = "Verifying & Creating..."; btn.disabled = true; msg.textContent = "";
+
+  try {
+    const { data: { session } } = await window.supa.auth.getSession();
+    if (!session) throw new Error("You must be logged in.");
+
+    const res = await fetch('/api/add-employee', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ firstName: fName, lastName: lName, phone: phone, email: email, password: pass })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    msg.textContent = "✅ Employee account successfully created!"; msg.style.color = "green";
+    await logSystemAction(`created a new staff login credential for: ${email}`);
+    ['empFName','empLName','empPhone','empEmail','empPass'].forEach(id => document.getElementById(id).value = '');
+  } catch (e) {
+    msg.textContent = "❌ " + e.message; msg.style.color = "var(--danger)";
+  } finally { btn.textContent = "+ Create Account"; btn.disabled = false; }
+}
+
+// ── INTERNAL NOTES ──────────────────────────────────────────────────────────
+async function submitInternalNote(bookingId) {
+  const textInput = document.getElementById(`newNote_${bookingId}`);
+  const text = textInput.value.trim();
+  const btn = document.getElementById(`btnNote_${bookingId}`);
+
+  if (!text) return;
+
+  btn.textContent = "Saving..."; 
+  btn.disabled = true;
+
+  try {
+    const { data: { session } } = await window.supa.auth.getSession();
+    let staffName = "Unknown Staff";
+    
+    if (session) {
+      const { data: profile } = await window.supa.from('staff_profiles').select('first_name, last_name').eq('id', session.user.id).single();
+      if (profile) staffName = `${profile.first_name} ${profile.last_name}`;
+    }
+
+    const { data: booking, error: fetchErr } = await window.supa.from('bookings').select('internal_notes, ref').eq('id', bookingId).single();
+    if (fetchErr) throw fetchErr;
+
+    const currentNotes = booking.internal_notes || [];
+    
+    const newNote = { 
+      date: new Date().toISOString(), 
+      staff: staffName, 
+      text: text 
+    };
+    
+    const updatedNotes = [...currentNotes, newNote];
+    const { error: updateErr } = await window.supa.from('bookings').update({ internal_notes: updatedNotes }).eq('id', bookingId);
+    if (updateErr) throw updateErr;
+
+    await logSystemAction(`added an internal note to Ref: ${booking.ref}`);
+    window.location.reload();
+
+  } catch(e) {
+    alert("Error adding note: " + e.message);
+    btn.textContent = "+ Save Note"; 
+    btn.disabled = false;
+  }
+}
+
+// ── SYSTEM LOGS & UNIVERSAL LOGGER ──────────────────────────────────────────
+async function logSystemAction(actionMessage) {
+  try {
+    const { data: { session } } = await window.supa.auth.getSession();
+    if (!session) return;
+
+    const { data: profile } = await window.supa.from('staff_profiles').select('first_name, last_name').eq('id', session.user.id).single();
+    const actorName = profile ? `${profile.first_name} ${profile.last_name}` : 'Unknown Staff';
+
+    await window.supa.from('system_logs').insert([{
+      source: 'Internal',
+      actor: actorName,
+      message: actionMessage
+    }]);
+  } catch (e) {
+    console.error("Silent Log Error:", e.message); 
+  }
+}
+
+async function renderLogsTab() {
+  const container = document.getElementById('logsTableBody');
+  if (!container) return; 
+  
+  container.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading system logs...</td></tr>';
+  
+  try {
+    const { data: logs, error } = await window.supa.from('system_logs').select('*').order('created_at', { ascending: false }).limit(100);
+    if (error) throw error;
+
+    container.innerHTML = logs.map(log => {
+      const d = new Date(log.created_at);
+      const dateStr = d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      const timeStr = d.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit' });
+      
+      const badgeClass = log.source === 'Online' ? 'badge-confirmed' : 'badge-pending';
+
+      return `
+        <tr>
+          <td style="white-space:nowrap; color:var(--text-muted); font-size:0.8rem;">
+            <div>${dateStr}</div>
+            <div style="font-weight:600;">${timeStr}</div>
+          </td>
+          <td><span class="badge ${badgeClass}">${log.source}</span></td>
+          <td style="font-size:0.85rem; line-height:1.4;">
+            <strong style="color:var(--text-main);">${log.actor}</strong> ${log.message}
+          </td>
+        </tr>
+      `;
+    }).join('') || '<tr><td colspan="3" style="text-align:center; padding:2rem; color:var(--text-muted);">No system logs recorded yet.</td></tr>';
+  } catch(e) {
+    container.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:2rem; color:red;">Error loading logs: ${e.message}</td></tr>`;
+  }
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────

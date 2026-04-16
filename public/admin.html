@@ -10,10 +10,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/auth.js"></script>
-  <script>
-    // This instantly checks for a logged-in session before the page can even load!
-    enforceAdminAuth();
-  </script>
+  <script>enforceAdminAuth();</script>
 
 </head>
 <body>
@@ -49,11 +46,17 @@
     <a class="nav-item" data-page="feed" onclick="navTo('feed')">
       <span class="nav-icon">📸</span>Photo Feed
     </a>
+    <a class="nav-item" data-page="staff" onclick="navTo('staff')">
+      <span class="nav-icon">👥</span>Staff Accounts
+    </a>
     <a class="nav-item" data-page="repairs" onclick="navTo('repairs')">
       <span class="nav-icon">🔧</span>Repair Costs
     </a>
     <a class="nav-item" data-page="guests" onclick="navTo('guests')">
       <span class="nav-icon">🚩</span>Flagged Guests
+    </a>
+    <a class="nav-item" data-page="logs" onclick="navTo('logs')">
+      <span class="nav-icon">📜</span>System Logs
     </a>
     <div class="nav-section-label">Export</div>
     <a class="nav-item" data-page="export" onclick="navTo('export')">
@@ -155,6 +158,23 @@
       </div>
     </div>
 
+    <!-- STAFFING PAGE -->
+    <div class="page" id="page-staff">
+      <div class="card" style="max-width: 500px;">
+        <div class="card-title">👥 Add Employee Account</div>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;">Only the Master Admin can create new staff credentials.</p>
+        <div class="form-row">
+          <div class="form-group"><label>First Name</label><input type="text" id="empFName" placeholder="Juan"></div>
+          <div class="form-group"><label>Last Name</label><input type="text" id="empLName" placeholder="Dela Cruz"></div>
+        </div>
+        <div class="form-group"><label>Phone Number</label><input type="tel" id="empPhone" placeholder="+63 912 345 6789"></div>
+        <div class="form-group"><label>Employee Email</label><input type="email" id="empEmail" placeholder="juan@avellanos.com"></div>
+        <div class="form-group"><label>Temporary Password</label><input type="password" id="empPass" placeholder="At least 6 characters"></div>
+        <button class="btn btn-success" id="btnCreateEmp" onclick="createEmployee()" style="width: 100%; margin-top: 0.5rem;">+ Create Account</button>
+        <div id="empMsg" style="margin-top: 1rem; font-size: 0.85rem; text-align: center; font-weight: 500;"></div>
+      </div>
+    </div>
+
     <!-- REPAIRS PAGE -->
     <div class="page" id="page-repairs">
       <div class="card" style="margin-bottom:1.2rem;">
@@ -220,6 +240,28 @@
             <tbody id="flagsTbody"></tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- SYSTEM LOGS PAGE -->
+    <div class="page" id="page-logs">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+        <h2 style="font-size: 1.5rem; font-weight: 600;">System Logs</h2>
+        <button class="btn btn-ghost btn-sm" onclick="renderLogsTab()">🔄 Refresh</button>
+      </div>
+      
+      <div class="card" style="padding: 0; overflow-x: auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 200px;">Date & Time (PST)</th>
+              <th style="width: 100px;">Source</th>
+              <th>Action Details</th>
+            </tr>
+          </thead>
+          <tbody id="logsTableBody">
+            </tbody>
+        </table>
       </div>
     </div>
 
