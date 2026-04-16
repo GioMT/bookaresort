@@ -113,6 +113,7 @@ const ABHC_DB = (() => {
       d.setDate(d.getDate() + 1);
     }
     return Math.max(0, totalQty - maxBookedOnAnyDay);
+  }
 
 // ── SUPPORT MODULE ─────────────────────────────────────────────────────────
   function getKB() { return req('/api/support?action=kb'); }
