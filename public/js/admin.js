@@ -768,11 +768,13 @@ async function removeFlaggedGuest(id) {
 
 // ── AVAILABILITY CALENDAR ─────────────────────────────────────────────────────
 async function renderAdminCal() {
-  const today   = new Date(); today.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
   const [rooms, bookings] = await Promise.all([ABHC_DB.getRooms(), ABHC_DB.getBookings()]);
-  const active  = rooms.filter(r => r.active);
-  const months  = [];
-  for (let m = 0; m < 3; m++) months.push(new Date(today.getFullYear(), today.getMonth()+m, 1));
+  const active = rooms.filter(r => r.active);
+  const months = [];
+  
+  // Create 3 months of views starting from current month
+  for (let m = 0; m < 3; m++) months.push(new Date(today.getFullYear(), today.getMonth() + m, 1));
 
   // Build booked map
   const bookedMap = {};
@@ -785,47 +787,61 @@ async function renderAdminCal() {
       const k = fmtD(d);
       if (!bookedMap[k]) bookedMap[k] = {};
       bookedMap[k][rid] = true;
-      d.setDate(d.getDate()+1);
+      d.setDate(d.getDate() + 1);
     }
   });
 
   let html = '';
   months.forEach(base => {
     const yr = base.getFullYear(), mo = base.getMonth();
-    const mName    = base.toLocaleString('en-US',{month:'long',year:'numeric'});
-    const firstDay = new Date(yr,mo,1).getDay();
-    const daysInMo = new Date(yr,mo+1,0).getDate();
+    // Use 'en-PH' for consistency with the rest of your app
+    const mName = base.toLocaleString('en-PH', { month: 'long', year: 'numeric', timeZone: 'Asia/Manila' });
+    const firstDay = new Date(yr, mo, 1).getDay();
+    const daysInMo = new Date(yr, mo + 1, 0).getDate();
     const DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+    
     html += `<div style="margin-bottom:2rem;"><h3 style="font-family:var(--font-serif);font-size:1.2rem;margin-bottom:0.8rem;">${mName}</h3>`;
-    html += `<div style="display:grid;grid-template-columns:repeat(${7+active.length},1fr);gap:2px;min-width:${(7+active.length)*40}px;">`;
+    html += `<div style="display:grid;grid-template-columns:repeat(${7 + active.length},1fr);gap:2px;min-width:${(7 + active.length) * 40}px;">`;
+    
+    // Header Row: Blank space above Day Names
     html += `<div style="grid-column:1/8;"></div>`;
-    active.forEach(r => { html += `<div style="text-align:center;font-size:0.65rem;font-weight:600;color:var(--text-muted);padding:0.3rem;background:var(--sand);border-radius:4px;">${r.emoji}</div>`; });
+    active.forEach(r => { 
+      // Replace 'r.emoji' with a fallback icon if emoji property is undefined
+      html += `<div style="text-align:center;font-size:0.65rem;font-weight:600;color:var(--text-muted);padding:0.3rem;background:var(--sand);border-radius:4px;">${r.emoji || '🏠'}</div>`; 
+    });
+
+    // Day Names Row
     DOW.forEach(d => { html += `<div style="text-align:center;font-size:0.65rem;color:var(--text-muted);padding:0.3rem;">${d}</div>`; });
     active.forEach(() => { html += `<div></div>`; });
-    // Add empty slots for the days before the 1st of the month
+
+    // Empty Slots (Days before the 1st of the month)
     for (let i = 0; i < firstDay; i++) { 
-      // Add 1 empty slot for the Date column
-      html += `<div></div>`; 
-      // Add empty slots for each Room column
-      active.forEach(() => { html += `<div></div>`; }); 
+      html += `<div></div>`; // Date column empty
+      active.forEach(() => { html += `<div></div>`; }); // Room columns empty
     }
+
+    // Actual Days Row
     for (let d = 1; d <= daysInMo; d++) {
-      const date  = new Date(yr,mo,d);
-      const ds    = fmtD(date);
-      const isPast= date < today;
-      const isToday= ds === fmtD(today);
-      html += `<div style="text-align:center;font-size:0.72rem;padding:0.25rem;${isToday?'font-weight:700;color:var(--aqua-deep);':''}${isPast?'color:#ccc;':'color:var(--text-dark);'}">${d}</div>`;
+      const date = new Date(yr, mo, d);
+      const ds = fmtD(date);
+      const isPast = date < today;
+      const isToday = ds === fmtD(today);
+      
+      html += `<div style="text-align:center;font-size:0.72rem;padding:0.25rem;${isToday ? 'font-weight:700;color:var(--aqua-deep);' : ''}${isPast ? 'color:#ccc;' : 'color:var(--text-dark);'}">${d}</div>`;
+      
       active.forEach(r => {
         const booked = !!(bookedMap[ds] && bookedMap[ds][r.id]);
-        html += `<div title="${r.name}" style="height:22px;border-radius:3px;${isPast?'background:#f5f5f5;':booked?'background:linear-gradient(135deg,var(--sunset),var(--sunset-dark));':'background:var(--aqua-light);'}"></div>`;
+        html += `<div title="${r.name}" style="height:22px;border-radius:3px;${isPast ? 'background:#f5f5f5;' : booked ? 'background:linear-gradient(135deg,var(--sunset),var(--sunset-dark));' : 'background:var(--aqua-light);'}"></div>`;
       });
     }
+    
     html += `</div>`;
     html += `<div style="display:flex;gap:1rem;margin-top:0.5rem;font-size:0.72rem;color:var(--text-muted);">
       <span style="display:flex;align-items:center;gap:0.3rem;"><span style="width:12px;height:12px;background:var(--aqua-light);border-radius:2px;display:inline-block;"></span>Available</span>
       <span style="display:flex;align-items:center;gap:0.3rem;"><span style="width:12px;height:12px;background:var(--sunset);border-radius:2px;display:inline-block;"></span>Booked</span>
     </div></div>`;
   });
+
   document.getElementById('adminCalWrap').innerHTML = html;
 }
 
