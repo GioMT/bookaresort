@@ -796,55 +796,52 @@ async function renderAdminCal() {
     const daysInMo = new Date(yr, mo + 1, 0).getDate();
     const DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
     
-    // Total columns = 7 (Days) + active.length (Rooms)
-    const totalCols = 7 + active.length;
+    html += `<div style="margin-bottom:2.5rem;"><h3 style="font-family:var(--font-serif);font-size:1.3rem;margin-bottom:1rem;">${mName}</h3>`;
     
-    html += `<div style="margin-bottom:2rem;"><h3 style="font-family:var(--font-serif);font-size:1.2rem;margin-bottom:0.8rem;">${mName}</h3>`;
-    html += `<div style="display:grid;grid-template-columns:repeat(${totalCols}, 1fr); gap:2px; min-width:${totalCols * 40}px;">`;
+    // We force a strict 7-column grid
+    html += `<div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:10px; border:1px solid var(--sand-mid); padding:10px; border-radius:12px; background:#fff;">`;
     
-    // 1. TOP HEADER: Room Icons
-    // We need 7 empty slots for the Su-Sa columns, then the icons
-    for (let i = 0; i < 7; i++) html += `<div></div>`;
-    active.forEach(r => {
-      html += `<div style="text-align:center;font-size:0.65rem;font-weight:600;color:var(--text-muted);padding:0.3rem;background:var(--sand);border-radius:4px;">${r.emoji || '🏠'}</div>`;
-    });
-
-    // 2. DAY NAMES ROW
+    // 1. DAY NAMES HEADER
     DOW.forEach(d => {
-      html += `<div style="text-align:center;font-size:0.65rem;color:var(--text-muted);padding:0.3rem;">${d}</div>`;
+      html += `<div style="text-align:center; font-size:0.75rem; font-weight:700; color:var(--text-muted); padding-bottom:10px; border-bottom:1px solid var(--sand-mid);">${d}</div>`;
     });
-    // Add empty spaces for the rest of the columns (the rooms) on this row
-    active.forEach(() => html += `<div></div>`);
 
-    // 3. CALENDAR CONTENT
-    // Start with empty cells for days before the 1st
+    // 2. EMPTY SLOTS (Days before the 1st)
     for (let i = 0; i < firstDay; i++) {
-      html += `<div></div>`; // Date column empty
-      active.forEach(() => html += `<div></div>`); // Room columns empty
+      html += `<div style="min-height:60px;"></div>`;
     }
 
-    // Days loop
+    // 3. DAYS LOOP
     for (let d = 1; d <= daysInMo; d++) {
       const date = new Date(yr, mo, d);
       const ds = fmtD(date);
       const isPast = date < today;
       const isToday = ds === fmtD(today);
       
-      // The Date Number
-      html += `<div style="text-align:center;font-size:0.72rem;padding:0.25rem;${isToday ? 'font-weight:700;color:var(--aqua-deep);' : ''}${isPast ? 'color:#ccc;' : 'color:var(--text-dark);'}">${d}</div>`;
-      
-      // The Availability Boxes for that day
-      active.forEach(r => {
-        const booked = !!(bookedMap[ds] && bookedMap[ds][r.id]);
-        html += `<div title="${r.name}" style="height:22px;border-radius:3px;${isPast ? 'background:#f5f5f5;' : booked ? 'background:linear-gradient(135deg,var(--sunset),var(--sunset-dark));' : 'background:var(--aqua-light);'}"></div>`;
-      });
+      html += `
+        <div style="min-height:80px; display:flex; flex-direction:column; gap:4px; border-radius:8px; padding:4px; ${isToday ? 'background:var(--aqua-light); outline:1px solid var(--aqua);' : ''}">
+          <div style="text-align:center; font-size:0.8rem; font-weight:600; ${isPast ? 'color:#ccc;' : 'color:var(--text-dark);'}">${d}</div>
+          
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            ${active.map(r => {
+              const booked = !!(bookedMap[ds] && bookedMap[ds][r.id]);
+              const bgColor = isPast ? '#f1f5f5' : (booked ? 'var(--sunset)' : '#e0f2f1');
+              return `<div title="${r.name}" style="height:6px; width:100%; border-radius:2px; background:${bgColor};" data-room="${r.id}"></div>`;
+            }).join('')}
+          </div>
+        </div>`;
     }
 
     html += `</div>`; // Close grid
-    html += `<div style="display:flex;gap:1rem;margin-top:0.5rem;font-size:0.72rem;color:var(--text-muted);">
-      <span style="display:flex;align-items:center;gap:0.3rem;"><span style="width:12px;height:12px;background:var(--aqua-light);border-radius:2px;display:inline-block;"></span>Available</span>
-      <span style="display:flex;align-items:center;gap:0.3rem;"><span style="width:12px;height:12px;background:var(--sunset);border-radius:2px;display:inline-block;"></span>Booked</span>
-    </div></div>`;
+    
+    // LEGEND
+    html += `
+      <div style="display:flex; gap:1.5rem; margin-top:0.8rem; font-size:0.75rem; color:var(--text-muted); padding-left:5px;">
+        <span style="display:flex; align-items:center; gap:0.4rem;"><span style="width:12px; height:6px; background:#e0f2f1; border-radius:2px;"></span>Available</span>
+        <span style="display:flex; align-items:center; gap:0.4rem;"><span style="width:12px; height:6px; background:var(--sunset); border-radius:2px;"></span>Booked</span>
+        <span style="display:flex; align-items:center; gap:0.4rem; margin-left:auto;">${active.length} Rooms Tracked</span>
+      </div>
+    </div>`;
   });
 
   document.getElementById('adminCalWrap').innerHTML = html;
