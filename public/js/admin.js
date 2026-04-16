@@ -802,7 +802,13 @@ async function renderAdminCal() {
     active.forEach(r => { html += `<div style="text-align:center;font-size:0.65rem;font-weight:600;color:var(--text-muted);padding:0.3rem;background:var(--sand);border-radius:4px;">${r.emoji}</div>`; });
     DOW.forEach(d => { html += `<div style="text-align:center;font-size:0.65rem;color:var(--text-muted);padding:0.3rem;">${d}</div>`; });
     active.forEach(() => { html += `<div></div>`; });
-    for (let i = 0; i < firstDay; i++) { html += `<div></div>`; active.forEach(() => html += `<div></div>`); }
+    // Add empty slots for the days before the 1st of the month
+    for (let i = 0; i < firstDay; i++) { 
+      // Add 1 empty slot for the Date column
+      html += `<div></div>`; 
+      // Add empty slots for each Room column
+      active.forEach(() => { html += `<div></div>`; }); 
+    }
     for (let d = 1; d <= daysInMo; d++) {
       const date  = new Date(yr,mo,d);
       const ds    = fmtD(date);
