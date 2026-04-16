@@ -772,11 +772,8 @@ async function renderAdminCal() {
   const [rooms, bookings] = await Promise.all([ABHC_DB.getRooms(), ABHC_DB.getBookings()]);
   const active = rooms.filter(r => r.active);
   const months = [];
-  
-  // Create 3 months of views starting from current month
-  for (let m = 0; m < 3; m++) months.push(new Date(today.getFullYear(), today.getMonth() + m, 1));
+  for (let m = 0; m < 3; m++) months.push(new Date(today.getFullYear(), today.getMonth()+m, 1));
 
-  // Build booked map
   const bookedMap = {};
   bookings.forEach(b => {
     if (b.status === 'cancelled') return;
@@ -787,55 +784,63 @@ async function renderAdminCal() {
       const k = fmtD(d);
       if (!bookedMap[k]) bookedMap[k] = {};
       bookedMap[k][rid] = true;
-      d.setDate(d.getDate() + 1);
+      d.setDate(d.getDate()+1);
     }
   });
 
   let html = '';
   months.forEach(base => {
     const yr = base.getFullYear(), mo = base.getMonth();
-    // Use 'en-PH' for consistency with the rest of your app
     const mName = base.toLocaleString('en-PH', { month: 'long', year: 'numeric', timeZone: 'Asia/Manila' });
     const firstDay = new Date(yr, mo, 1).getDay();
     const daysInMo = new Date(yr, mo + 1, 0).getDate();
     const DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
     
-    html += `<div style="margin-bottom:2rem;"><h3 style="font-family:var(--font-serif);font-size:1.2rem;margin-bottom:0.8rem;">${mName}</h3>`;
-    html += `<div style="display:grid;grid-template-columns:repeat(${7 + active.length},1fr);gap:2px;min-width:${(7 + active.length) * 40}px;">`;
+    // Total columns = 7 (Days) + active.length (Rooms)
+    const totalCols = 7 + active.length;
     
-    // Header Row: Blank space above Day Names
-    html += `<div style="grid-column:1/8;"></div>`;
-    active.forEach(r => { 
-      // Replace 'r.emoji' with a fallback icon if emoji property is undefined
-      html += `<div style="text-align:center;font-size:0.65rem;font-weight:600;color:var(--text-muted);padding:0.3rem;background:var(--sand);border-radius:4px;">${r.emoji || '🏠'}</div>`; 
+    html += `<div style="margin-bottom:2rem;"><h3 style="font-family:var(--font-serif);font-size:1.2rem;margin-bottom:0.8rem;">${mName}</h3>`;
+    html += `<div style="display:grid;grid-template-columns:repeat(${totalCols}, 1fr); gap:2px; min-width:${totalCols * 40}px;">`;
+    
+    // 1. TOP HEADER: Room Icons
+    // We need 7 empty slots for the Su-Sa columns, then the icons
+    for (let i = 0; i < 7; i++) html += `<div></div>`;
+    active.forEach(r => {
+      html += `<div style="text-align:center;font-size:0.65rem;font-weight:600;color:var(--text-muted);padding:0.3rem;background:var(--sand);border-radius:4px;">${r.emoji || '🏠'}</div>`;
     });
 
-    // Day Names Row
-    DOW.forEach(d => { html += `<div style="text-align:center;font-size:0.65rem;color:var(--text-muted);padding:0.3rem;">${d}</div>`; });
-    active.forEach(() => { html += `<div></div>`; });
+    // 2. DAY NAMES ROW
+    DOW.forEach(d => {
+      html += `<div style="text-align:center;font-size:0.65rem;color:var(--text-muted);padding:0.3rem;">${d}</div>`;
+    });
+    // Add empty spaces for the rest of the columns (the rooms) on this row
+    active.forEach(() => html += `<div></div>`);
 
-    // Empty Slots (Days before the 1st of the month)
-    for (let i = 0; i < firstDay; i++) { 
+    // 3. CALENDAR CONTENT
+    // Start with empty cells for days before the 1st
+    for (let i = 0; i < firstDay; i++) {
       html += `<div></div>`; // Date column empty
-      active.forEach(() => { html += `<div></div>`; }); // Room columns empty
+      active.forEach(() => html += `<div></div>`); // Room columns empty
     }
 
-    // Actual Days Row
+    // Days loop
     for (let d = 1; d <= daysInMo; d++) {
       const date = new Date(yr, mo, d);
       const ds = fmtD(date);
       const isPast = date < today;
       const isToday = ds === fmtD(today);
       
+      // The Date Number
       html += `<div style="text-align:center;font-size:0.72rem;padding:0.25rem;${isToday ? 'font-weight:700;color:var(--aqua-deep);' : ''}${isPast ? 'color:#ccc;' : 'color:var(--text-dark);'}">${d}</div>`;
       
+      // The Availability Boxes for that day
       active.forEach(r => {
         const booked = !!(bookedMap[ds] && bookedMap[ds][r.id]);
         html += `<div title="${r.name}" style="height:22px;border-radius:3px;${isPast ? 'background:#f5f5f5;' : booked ? 'background:linear-gradient(135deg,var(--sunset),var(--sunset-dark));' : 'background:var(--aqua-light);'}"></div>`;
       });
     }
-    
-    html += `</div>`;
+
+    html += `</div>`; // Close grid
     html += `<div style="display:flex;gap:1rem;margin-top:0.5rem;font-size:0.72rem;color:var(--text-muted);">
       <span style="display:flex;align-items:center;gap:0.3rem;"><span style="width:12px;height:12px;background:var(--aqua-light);border-radius:2px;display:inline-block;"></span>Available</span>
       <span style="display:flex;align-items:center;gap:0.3rem;"><span style="width:12px;height:12px;background:var(--sunset);border-radius:2px;display:inline-block;"></span>Booked</span>
