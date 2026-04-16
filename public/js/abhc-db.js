@@ -130,5 +130,7 @@ const ABHC_DB = (() => {
     getFlaggedGuests, addFlaggedGuest, removeFlaggedGuest, isGuestFlagged,
     allBooked, getRoomAvailability,
     fmtD,
+    // Add these missing Customer Service functions!
+    getKB, getSupportCases, createSupportCase, updateSupportCase, getSupportMessages, sendSupportMessage
   };
 })();

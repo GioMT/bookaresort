@@ -3,6 +3,11 @@
    Avellano's Beach Hut Cottage
    ============================================================ */
 
+   // ── INITIALIZE SUPABASE FOR LIVE CHAT ─────────────────────────────────────────
+const SUPA_URL = 'https://aubuwrjwkfx' + 'hpuvtlggf.supabase.co';
+const SUPA_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1YnV3cmp3' + 'a2Z4aHB1dnRsZ2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODE4NTcsImV4cCI6MjA5MTc1Nzg1N30.y0vw8T3Cpjfh4dQI8bgMh7iJ8mvERN0_MVoVg7v5zGA';
+window.supa = window.supabase.createClient(SUPA_URL, SUPA_ANON_KEY);
+
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function fmtD(d)    { return d instanceof Date ? d.toISOString().split('T')[0] : d; }
 function parseD(s)  { const [y,m,dy] = s.split('-').map(Number); return new Date(y, m-1, dy); }
