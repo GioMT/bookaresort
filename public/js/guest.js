@@ -508,6 +508,126 @@ async function submitFeedPost() {
 // Load the feed when the page starts
 loadApprovedFeed();
 
+/* GUEST CHAT WIDGET */
+.chat-widget { position: fixed; bottom: 2rem; right: 2rem; z-index: 9999; font-family: var(--font-sans); }
+.chat-toggle { width: 60px; height: 60px; border-radius: 50%; background: var(--aqua-deep); color: white; border: none; font-size: 1.5rem; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.2); transition: transform 0.3s; display: flex; align-items: center; justify-content: center; }
+.chat-toggle:hover { transform: scale(1.1); }
+.chat-window { display: none; position: absolute; bottom: 80px; right: 0; width: 350px; height: 500px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); flex-direction: column; overflow: hidden; border: 1px solid var(--sand-mid); }
+.chat-window.open { display: flex; animation: slideUp 0.3s ease; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.chat-header { background: var(--aqua-deep); color: white; padding: 1rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+.chat-close { background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; }
+.chat-body { flex: 1; padding: 1rem; overflow-y: auto; background: var(--bg); display: flex; flex-direction: column; gap: 0.8rem; scroll-behavior: smooth; }
+.chat-msg { max-width: 80%; padding: 0.8rem 1rem; border-radius: 12px; font-size: 0.85rem; line-height: 1.4; }
+.msg-bot { background: white; border: 1px solid var(--sand-mid); align-self: flex-start; border-bottom-left-radius: 2px; }
+.msg-guest { background: var(--aqua-light); color: var(--aqua-deep); align-self: flex-end; border-bottom-right-radius: 2px; }
+.msg-sys { background: var(--sand); color: var(--text-muted); align-self: center; font-size: 0.75rem; text-align: center; border-radius: 50px; }
+.chat-input-area { padding: 1rem; background: white; border-top: 1px solid var(--sand-mid); display: flex; gap: 0.5rem; }
+.chat-input { flex: 1; padding: 0.6rem; border: 1px solid var(--sand-mid); border-radius: 8px; outline: none; font-family: inherit; font-size: 0.85rem; }
+.chat-send { background: var(--aqua-deep); color: white; border: none; padding: 0 1rem; border-radius: 8px; cursor: pointer; }
+.prechat-form { background: white; padding: 1rem; border-radius: 8px; border: 1px solid var(--sand-mid); display: flex; flex-direction: column; gap: 0.5rem; }
+
+
+// ── GUEST CHAT WIDGET ─────────────────────────────────────────────────────────
+let chatCaseId = null;
+let kbData = [];
+let botMode = true;
+let guestRealtimeChannel = null;
+
+async function toggleGuestChat() {
+  const win = document.getElementById('guestChatWindow');
+  win.classList.toggle('open');
+  if (win.classList.contains('open') && document.getElementById('guestChatBody').innerHTML === '') {
+    kbData = await ABHC_DB.getKB();
+    appendMsg('bot', "Hi! I'm the Avellano's virtual assistant. How can I help you today?");
+  }
+}
+
+function appendMsg(type, text) {
+  const body = document.getElementById('guestChatBody');
+  body.innerHTML += `<div class="chat-msg msg-${type}">${text}</div>`;
+  body.scrollTop = body.scrollHeight;
+}
+
+async function sendGuestMsg() {
+  const input = document.getElementById('guestChatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  appendMsg('guest', text);
+
+  if (botMode) {
+    const match = kbData.find(k => k.keywords.split(',').some(kw => text.toLowerCase().includes(kw.trim())));
+    setTimeout(() => {
+      if (match) {
+        appendMsg('bot', match.answer);
+      } else {
+        appendMsg('bot', "I'm not exactly sure about that. Would you like me to connect you to a human agent?");
+        const body = document.getElementById('guestChatBody');
+        body.innerHTML += `<button class="btn btn-sm btn-ghost" style="align-self:flex-start;margin-top:-0.5rem;" onclick="showPreChatForm(this)">Yes, connect me</button>`;
+        body.scrollTop = body.scrollHeight;
+      }
+    }, 600);
+  } else if (chatCaseId) {
+    await ABHC_DB.sendSupportMessage({ case_id: chatCaseId, sender_type: 'guest', sender_name: 'Guest', message: text });
+  }
+}
+
+function showPreChatForm(btn) {
+  btn.style.display = 'none';
+  const body = document.getElementById('guestChatBody');
+  body.innerHTML += `
+    <div class="prechat-form" id="prechatForm">
+      <div style="font-size:0.8rem;font-weight:600;margin-bottom:0.5rem;">Connect with an Agent</div>
+      <input type="text" id="pcName" class="chat-input" placeholder="Name (Required)">
+      <input type="email" id="pcEmail" class="chat-input" placeholder="Email (Required)">
+      <input type="text" id="pcPhone" class="chat-input" placeholder="Phone (Optional)">
+      <input type="text" id="pcRef" class="chat-input" placeholder="Booking Ref (Optional)">
+      <textarea id="pcConcern" class="chat-input" rows="2" placeholder="Briefly describe your concern..."></textarea>
+      <button class="btn btn-primary btn-sm" onclick="submitPreChat()">Start Chat</button>
+    </div>`;
+  body.scrollTop = body.scrollHeight;
+}
+
+async function submitPreChat() {
+  const name = document.getElementById('pcName').value.trim();
+  const email = document.getElementById('pcEmail').value.trim();
+  const concern = document.getElementById('pcConcern').value.trim();
+  if (!name || !email) return alert("Name and Email are required.");
+
+  document.getElementById('prechatForm').style.display = 'none';
+  appendMsg('sys', 'Creating case...');
+
+  const newId = 'CS-' + Date.now().toString(36).toUpperCase().slice(-5);
+  await ABHC_DB.createSupportCase({
+    case_id: newId, guest_name: name, guest_email: email,
+    guest_phone: document.getElementById('pcPhone').value.trim(),
+    ref_no: document.getElementById('pcRef').value.trim(),
+    concern: concern
+  });
+
+  chatCaseId = newId;
+  botMode = false;
+  appendMsg('sys', `Case ${newId} created. Please wait for an agent...`);
+  
+  // Realtime WebSocket Listener (Zero Polling!)
+  if (!guestRealtimeChannel) {
+    guestRealtimeChannel = window.supa.channel(`guest-chat-${chatCaseId}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'support_messages', 
+        filter: `case_id=eq.${chatCaseId}` 
+      }, (payload) => {
+        if (payload.new.sender_type !== 'guest') {
+          const typeMap = { 'system': 'sys', 'bot': 'bot', 'staff': 'bot' };
+          appendMsg(typeMap[payload.new.sender_type], payload.new.message);
+        }
+      })
+      .subscribe();
+  }
+}
+
 // ── INIT CALENDARS ────────────────────────────────────────────────────────────
 renderCal('cal1', off1);
 renderCal('cal2', off2);

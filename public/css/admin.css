@@ -183,3 +183,21 @@ select.search-input { cursor: pointer; }
   .topbar-title { font-size: 1.15rem; }
   .content   { padding: 1rem; }
 }
+
+/* ADMIN CHAT SPLIT SCREEN */
+.chat-layout { display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; height: calc(100vh - 140px); min-height: 600px; }
+.chat-sidebar { background: white; border-radius: 16px; border: 1px solid var(--sand-mid); padding: 1.2rem; overflow-y: auto; }
+.chat-queue-header { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.8rem; letter-spacing: 0.05em; }
+.queue-item { padding: 0.8rem; border: 1px solid var(--sand-mid); border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer; transition: all 0.2s; }
+.queue-item:hover, .queue-item.active { border-color: var(--aqua); background: var(--aqua-light); }
+.queue-item-id { font-family: monospace; font-size: 0.75rem; color: var(--aqua-deep); font-weight: 600; margin-bottom: 0.2rem; }
+.queue-item-name { font-size: 0.85rem; font-weight: 500; color: var(--text-dark); }
+.cs-tab { flex: 1; text-align: center; padding: 0.8rem; font-size: 0.8rem; font-weight: 500; cursor: pointer; color: var(--text-muted); }
+.cs-tab.active { background: white; color: var(--aqua-deep); border-bottom: 2px solid var(--aqua); }
+.chat-body { padding: 1rem; overflow-y: auto; background: var(--bg); display: flex; flex-direction: column; gap: 0.8rem; scroll-behavior: smooth; }
+.chat-msg { max-width: 80%; padding: 0.8rem 1rem; border-radius: 12px; font-size: 0.85rem; line-height: 1.4; }
+.msg-bot { background: white; border: 1px solid var(--sand-mid); align-self: flex-start; border-bottom-left-radius: 2px; }
+.msg-guest { background: var(--aqua-light); color: var(--aqua-deep); align-self: flex-end; border-bottom-right-radius: 2px; }
+.msg-sys { background: var(--sand); color: var(--text-muted); align-self: center; font-size: 0.75rem; text-align: center; border-radius: 50px; }
+.chat-input-area { padding: 1rem; background: white; border-top: 1px solid var(--sand-mid); display: flex; gap: 0.5rem; }
+.chat-input { flex: 1; padding: 0.6rem; border: 1px solid var(--sand-mid); border-radius: 8px; outline: none; font-family: inherit; font-size: 0.85rem; }

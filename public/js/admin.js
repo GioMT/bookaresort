@@ -37,7 +37,9 @@ function closeSidebar() {
 const PAGE_TITLES = {
   dashboard: 'Revenue Dashboard', bookings: 'Booking History',
   calendar:  'Availability Calendar', rooms: 'Manage Rooms',
-  repairs:   'Repair Costs', guests: 'Flagged Guests', export: 'Export Data', feed: 'Photo Feed', staff: 'Staff Accounts', logs: 'System Logs',
+  repairs:   'Repair Costs', guests: 'Flagged Guests', export: 'Export Data', 
+  feed: 'Photo Feed', staff: 'Staff Accounts', logs: 'System Logs', 
+  chat: 'Customer Service', directory: 'Case Directory',
 };
 
 function navTo(page) {
@@ -55,7 +57,8 @@ function navTo(page) {
   if (page === 'guests')    renderFlaggedTable();
   if (page === 'calendar')  renderAdminCal();
   if (page === 'logs')      renderLogsTab();
-
+  if (page === 'chat')      initSupport(); // Boots up the listener when they click the tab
+  if (page === 'directory') renderDirectory();
   if (window.innerWidth <= 900) closeSidebar();
 }
 
@@ -352,6 +355,7 @@ async function toggleFlag(id) {
 
 // ── BOOKING MODAL ─────────────────────────────────────────────────────────────
 let _currentStayType = '12hr';
+let _allRooms = []; // Global cache so the dropdown can read room data easily
 
 function setStayType(type) {
   _currentStayType = type;
@@ -363,9 +367,61 @@ function setStayType(type) {
 }
 
 async function populateRoomSelect(selected) {
-  const rooms = await ABHC_DB.getRooms();
-  document.getElementById('bRoom').innerHTML = rooms.filter(r => r.active)
+  _allRooms = await ABHC_DB.getRooms();
+  document.getElementById('bRoom').innerHTML = _allRooms.filter(r => r.active)
     .map(r => `<option value="${r.id}" data-p12="${r.price12h}" data-p24="${r.price24h}" ${r.id===selected?'selected':''}>${r.name} — ₱${r.price12h}/12h | ₱${r.price24h}/24h</option>`).join('');
+  
+  // Inject the Unit/Quantity container if it doesn't exist
+  if (!document.getElementById('bUnitContainer')) {
+    const container = document.createElement('div');
+    container.id = 'bUnitContainer';
+    container.style.marginTop = '1rem';
+    document.getElementById('bRoom').parentNode.appendChild(container);
+  }
+  renderUnitDropdown();
+}
+
+// Ensure the dropdown updates when the room changes
+document.getElementById('bRoom').addEventListener('change', () => {
+  renderUnitDropdown();
+  calcBTotal();
+});
+
+// Dynamically generate the Unit ID and Quantity picker
+function renderUnitDropdown() {
+  const rid = document.getElementById('bRoom').value;
+  const room = _allRooms.find(r => r.id === rid);
+  const container = document.getElementById('bUnitContainer');
+  
+  if (room) {
+    let unitHtml = '';
+    if (room.unitIds && room.unitIds.length > 0) {
+      const options = room.unitIds.map(u => `<option value="${u}">${u}</option>`).join('');
+      unitHtml = `
+        <div style="flex:1;">
+          <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:500;">Unit Preference (Optional)</label>
+          <select id="bUnit" style="width:100%;padding:0.65rem 0.9rem;border:1.5px solid var(--sand-mid);border-radius:8px;outline:none;font-family:var(--font-sans);">
+            <option value="">Any available</option>
+            ${options}
+          </select>
+        </div>
+      `;
+    }
+    
+    const maxQty = room.quantity || 1;
+    const qtyHtml = `
+      <div style="flex:0 0 100px;">
+        <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:500;">Quantity</label>
+        <input type="number" id="bQty" value="1" min="1" max="${maxQty}" onchange="calcBTotal()" style="width:100%;padding:0.65rem 0.9rem;border:1.5px solid var(--sand-mid);border-radius:8px;outline:none;font-family:var(--font-sans);">
+      </div>
+    `;
+    
+    container.innerHTML = `<div style="display:flex; gap:1rem; align-items:flex-end;">${unitHtml}${qtyHtml}</div>`;
+    container.style.display = 'block';
+  } else {
+    container.innerHTML = '';
+    container.style.display = 'none';
+  }
 }
 
 async function openBookingModal() {
@@ -383,7 +439,6 @@ async function openBookingModal() {
   openModal('bookingModal');
 }
 document.querySelector('[onclick="openModal(\'bookingModal\')"]').onclick = () => openBookingModal();
-document.getElementById('bRoom').addEventListener('change', calcBTotal);
 
 function calcBTotal() {
   const rid = document.getElementById('bRoom').value;
@@ -395,6 +450,10 @@ function calcBTotal() {
   const pricePer12 = parseInt(opt.dataset.p12) || 0;
   const pricePer24 = parseInt(opt.dataset.p24) || 0;
   
+  // Fetch the active quantity input
+  const qtyInput = document.getElementById('bQty');
+  const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+  
   let durationLabel = '', totalBase = 0, rateLabel = '';
 
   if (_currentStayType === '12hr') {
@@ -402,14 +461,14 @@ function calcBTotal() {
     if (!ci) { document.getElementById('bTotalPreview').innerHTML = ''; return; }
     durationLabel = '12-Hour Stay';
     rateLabel = `${fmtMoney(pricePer12)} / 12h`;
-    totalBase = pricePer12; 
+    totalBase = pricePer12 * qty; 
   } else {
     const ci   = document.getElementById('bCheckIn24').value;
     const days = parseInt(document.getElementById('bDays').value) || 1;
     if (!ci || days < 1) { document.getElementById('bTotalPreview').innerHTML = ''; return; }
     durationLabel = `${days} Day${days>1?'s':''}`;
     rateLabel = `${fmtMoney(pricePer24)} / 24h`;
-    totalBase = pricePer24 * days; 
+    totalBase = (pricePer24 * days) * qty; 
   }
 
   const tax   = 0;
@@ -417,6 +476,7 @@ function calcBTotal() {
   
   document.getElementById('bTotalPreview').innerHTML = `
     <div class="rev-line"><span>Stay Type</span><span>${_currentStayType === '12hr' ? '🌙 12-Hour' : '☀️ 24-Hour'}</span></div>
+    <div class="rev-line"><span>Quantity</span><span>${qty}x Rooms</span></div>
     <div class="rev-line"><span>Duration</span><span>${durationLabel}</span></div>
     <div class="rev-line"><span>Room Rate</span><span>${rateLabel}</span></div>
     <div class="rev-line"><span><strong>Total (Tax Inclusive)</strong></span><span style="color:var(--aqua-deep);"><strong>${fmtMoney(total)}</strong></span></div>`;
@@ -429,14 +489,22 @@ async function saveBooking() {
   const ph       = document.getElementById('bPhone').value.trim();
   const rid      = document.getElementById('bRoom').value;
   const status   = document.getElementById('bStatus').value;
-  const req      = document.getElementById('bReq').value.trim();
-  const notes    = document.getElementById('bNotes').value.trim();
   const editId   = document.getElementById('editBookingId').value;
   const stayType = _currentStayType;
   if (!fn||!ln||!em||!rid) { toast('Please fill all required fields.','error'); return; }
 
-  const rooms = await ABHC_DB.getRooms();
-  const room  = rooms.find(r => r.id === rid);
+  // Extract Unit Preference & Quantity
+  const unitDropdown = document.getElementById('bUnit');
+  const preferredUnit = unitDropdown ? unitDropdown.value : '';
+  let finalReq = document.getElementById('bReq').value.trim();
+  if (preferredUnit) {
+    finalReq = finalReq ? `[Preferred Unit: ${preferredUnit}] - ${finalReq}` : `[Preferred Unit: ${preferredUnit}]`;
+  }
+  
+  const qtyInput = document.getElementById('bQty');
+  const roomQuantity = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+
+  const room  = _allRooms.find(r => r.id === rid);
   let checkIn, checkOut, nights, subtotal, checkInTime = '14:00';
 
   if (stayType === '12hr') {
@@ -445,13 +513,14 @@ async function saveBooking() {
     if (!checkIn) { toast('Please select a check-in date.','error'); return; }
     checkOut = checkIn;
     nights   = 0.5;
-    subtotal = room.price12h; 
+    subtotal = room.price12h * roomQuantity; 
   } else {
     checkIn      = document.getElementById('bCheckIn24').value;
     const days   = parseInt(document.getElementById('bDays').value) || 1;
     if (!checkIn || days < 1) { toast('Please select a check-in date and number of days.','error'); return; }
     const coDate = new Date(checkIn); coDate.setDate(coDate.getDate() + days);
-    checkOut = fmtD(coDate); nights = days; subtotal = room.price24h * days; 
+    checkOut = fmtD(coDate); nights = days; 
+    subtotal = room.price24h * days * roomQuantity; 
   }
 
   const tax = 0, total = subtotal;
@@ -468,9 +537,11 @@ async function saveBooking() {
   const payload = {
     guestFname:fn, guestLname:ln, guestName:fn+' '+ln,
     guestEmail:em, guestPhone:ph, roomId:rid, roomName:room.name,
+    roomQuantity: roomQuantity, // Attach the quantity!
     checkIn, checkOut, checkInTime, nights, stayType,
-    subtotal, tax, total, specialReq:req, notes, status,
-    createdByStaff: staffStamp 
+    subtotal, tax, total, specialReq:finalReq, // Special request holds the unit ID!
+    notes: document.getElementById('bNotes').value.trim(), 
+    status, createdByStaff: staffStamp 
   };
 
   try {
@@ -504,8 +575,8 @@ async function editBooking(id) {
   document.getElementById('bEmail').value  = b.guest_email || b.guestEmail || '';
   document.getElementById('bPhone').value  = b.guest_phone || b.guestPhone || '';
   document.getElementById('bStatus').value = b.status || 'confirmed';
-  document.getElementById('bReq').value    = b.special_req || b.specialReq || '';
   document.getElementById('bNotes').value  = b.notes || '';
+  
   const stayType = b.stay_type || b.stayType || '24hr';
   setStayType(stayType);
   if (stayType === '12hr') {
@@ -515,7 +586,27 @@ async function editBooking(id) {
     document.getElementById('bCheckIn24').value = b.check_in || b.checkIn || '';
     document.getElementById('bDays').value      = b.nights || 1;
   }
+  
+  // Wait for dropdown to be built so we can populate the unit
   await populateRoomSelect(b.room_id || b.roomId);
+  
+  // Extract the preferred unit from the special request if it exists
+  const reqText = b.special_req || b.specialReq || '';
+  const match = reqText.match(/\[Preferred Unit:\s*(.*?)\]/);
+  if (match) {
+    const unit = match[1];
+    const unitDropdown = document.getElementById('bUnit');
+    if (unitDropdown) unitDropdown.value = unit;
+    // Strip it out of the visible textbox so they don't duplicate it
+    document.getElementById('bReq').value = reqText.replace(/\[Preferred Unit:\s*.*?\](?: -\s*)?/, '').trim();
+  } else {
+    document.getElementById('bReq').value = reqText;
+  }
+  
+  // Extract Quantity
+  const qtyInput = document.getElementById('bQty');
+  if (qtyInput) qtyInput.value = b.room_quantity || 1;
+
   calcBTotal();
   openModal('bookingModal');
 }
@@ -767,6 +858,7 @@ async function removeFlaggedGuest(id) {
 }
 
 // ── AVAILABILITY CALENDAR ─────────────────────────────────────────────────────
+// ── AVAILABILITY CALENDAR ─────────────────────────────────────────────────────
 async function renderAdminCal() {
   const today = new Date(); today.setHours(0,0,0,0);
   const [rooms, bookings] = await Promise.all([ABHC_DB.getRooms(), ABHC_DB.getBookings()]);
@@ -774,16 +866,19 @@ async function renderAdminCal() {
   const months = [];
   for (let m = 0; m < 3; m++) months.push(new Date(today.getFullYear(), today.getMonth()+m, 1));
 
+  // Build booked map (Now tracks exactly HOW MANY units are booked)
   const bookedMap = {};
   bookings.forEach(b => {
     if (b.status === 'cancelled') return;
     const rid = b.room_id || b.roomId;
+    const qty = b.room_quantity || 1; // Capture the quantity
     let d = new Date(b.check_in || b.checkIn);
     const co = new Date(b.check_out || b.checkOut);
     while (d < co) {
       const k = fmtD(d);
       if (!bookedMap[k]) bookedMap[k] = {};
-      bookedMap[k][rid] = true;
+      if (!bookedMap[k][rid]) bookedMap[k][rid] = 0;
+      bookedMap[k][rid] += qty; // Add up the total units used
       d.setDate(d.getDate()+1);
     }
   });
@@ -797,21 +892,14 @@ async function renderAdminCal() {
     const DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
     
     html += `<div style="margin-bottom:2.5rem;"><h3 style="font-family:var(--font-serif);font-size:1.3rem;margin-bottom:1rem;">${mName}</h3>`;
-    
-    // We force a strict 7-column grid
     html += `<div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:10px; border:1px solid var(--sand-mid); padding:10px; border-radius:12px; background:#fff;">`;
     
-    // 1. DAY NAMES HEADER
     DOW.forEach(d => {
       html += `<div style="text-align:center; font-size:0.75rem; font-weight:700; color:var(--text-muted); padding-bottom:10px; border-bottom:1px solid var(--sand-mid);">${d}</div>`;
     });
 
-    // 2. EMPTY SLOTS (Days before the 1st)
-    for (let i = 0; i < firstDay; i++) {
-      html += `<div style="min-height:60px;"></div>`;
-    }
+    for (let i = 0; i < firstDay; i++) html += `<div style="min-height:60px;"></div>`;
 
-    // 3. DAYS LOOP
     for (let d = 1; d <= daysInMo; d++) {
       const date = new Date(yr, mo, d);
       const ds = fmtD(date);
@@ -821,25 +909,39 @@ async function renderAdminCal() {
       html += `
         <div style="min-height:80px; display:flex; flex-direction:column; gap:4px; border-radius:8px; padding:4px; ${isToday ? 'background:var(--aqua-light); outline:1px solid var(--aqua);' : ''}">
           <div style="text-align:center; font-size:0.8rem; font-weight:600; ${isPast ? 'color:#ccc;' : 'color:var(--text-dark);'}">${d}</div>
-          
           <div style="display:flex; flex-direction:column; gap:2px;">
             ${active.map(r => {
-              const booked = !!(bookedMap[ds] && bookedMap[ds][r.id]);
-              const bgColor = isPast ? '#f1f5f5' : (booked ? 'var(--sunset)' : '#e0f2f1');
-              return `<div title="${r.name}" style="height:6px; width:100%; border-radius:2px; background:${bgColor};" data-room="${r.id}"></div>`;
+              const bookedCount = (bookedMap[ds] && bookedMap[ds][r.id]) || 0;
+              const totalUnits = r.quantity || 1;
+              const pct = Math.min(100, Math.round((bookedCount / totalUnits) * 100));
+              
+              let bgStyle = '';
+              if (isPast) {
+                bgStyle = 'background:#f1f5f5;';
+              } else if (bookedCount === 0) {
+                bgStyle = 'background:#e0f2f1;';
+              } else if (bookedCount >= totalUnits) {
+                bgStyle = 'background:var(--sunset);'; // Fully booked
+              } else {
+                // Partially booked (Progress Bar effect!)
+                bgStyle = `background:linear-gradient(90deg, var(--sunset) ${pct}%, #e0f2f1 ${pct}%); border: 1px solid rgba(255,112,67,0.2);`;
+              }
+
+              return `<div title="${r.name} - ${bookedCount}/${totalUnits} Booked" style="height:6px; width:100%; border-radius:2px; ${bgStyle}" data-room="${r.id}"></div>`;
             }).join('')}
           </div>
         </div>`;
     }
 
-    html += `</div>`; // Close grid
+    html += `</div>`; 
     
-    // LEGEND
+    // Updated Legend
     html += `
-      <div style="display:flex; gap:1.5rem; margin-top:0.8rem; font-size:0.75rem; color:var(--text-muted); padding-left:5px;">
+      <div style="display:flex; gap:1.5rem; margin-top:0.8rem; font-size:0.75rem; color:var(--text-muted); padding-left:5px; flex-wrap:wrap;">
         <span style="display:flex; align-items:center; gap:0.4rem;"><span style="width:12px; height:6px; background:#e0f2f1; border-radius:2px;"></span>Available</span>
-        <span style="display:flex; align-items:center; gap:0.4rem;"><span style="width:12px; height:6px; background:var(--sunset); border-radius:2px;"></span>Booked</span>
-        <span style="display:flex; align-items:center; gap:0.4rem; margin-left:auto;">${active.length} Rooms Tracked</span>
+        <span style="display:flex; align-items:center; gap:0.4rem;"><span style="width:12px; height:6px; background:linear-gradient(90deg, var(--sunset) 50%, #e0f2f1 50%); border-radius:2px; border:1px solid rgba(255,112,67,0.2);"></span>Partially Booked</span>
+        <span style="display:flex; align-items:center; gap:0.4rem;"><span style="width:12px; height:6px; background:var(--sunset); border-radius:2px;"></span>Fully Booked</span>
+        <span style="display:flex; align-items:center; gap:0.4rem; margin-left:auto;">Hover over bars to see X/Y Capacity</span>
       </div>
     </div>`;
   });
@@ -1081,6 +1183,156 @@ async function renderLogsTab() {
   } catch(e) {
     container.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:2rem; color:red;">Error loading logs: ${e.message}</td></tr>`;
   }
+}
+
+// ── CUSTOMER SERVICE MODULE ───────────────────────────────────────────────────
+let currentAdminCase = null;
+let adminProfile = null;
+let adminRealtimeChannel = null;
+
+async function initSupport() {
+  const { data: { session } } = await window.supa.auth.getSession();
+  if (session) {
+    const { data: p } = await window.supa.from('staff_profiles').select('*').eq('id', session.user.id).single();
+    if (p) adminProfile = `${p.first_name} ${p.last_name}`;
+  }
+  
+  await refreshSupportUI();
+
+  // WebSocket Listener (Zero Polling!)
+  if (!adminRealtimeChannel) {
+    adminRealtimeChannel = window.supa.channel('admin-support-tracker')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_cases' }, () => {
+        refreshSupportUI(); 
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, payload => {
+        if (currentAdminCase && payload.new.case_id === currentAdminCase.case_id) {
+          refreshSupportUI();
+        }
+      })
+      .subscribe();
+  }
+}
+
+async function refreshSupportUI() {
+  if (document.getElementById('page-chat').classList.contains('active')) {
+    const cases = await ABHC_DB.getSupportCases();
+    const pending = cases.filter(c => c.status === 'pending');
+    const active = cases.filter(c => c.status === 'active' && c.owner === adminProfile);
+    
+    const renderQ = (arr) => arr.map(c => `
+      <div class="queue-item ${currentAdminCase?.case_id === c.case_id ? 'active' : ''}" onclick="loadAdminCase('${c.case_id}')">
+        <div class="queue-item-id">${c.case_id}</div>
+        <div class="queue-item-name">${c.guest_name}</div>
+      </div>`).join('') || '<div style="font-size:0.8rem;color:#ccc;">Empty</div>';
+      
+    document.getElementById('queuePending').innerHTML = renderQ(pending);
+    document.getElementById('queueActive').innerHTML = renderQ(active);
+
+    if (currentAdminCase) {
+      currentAdminCase = cases.find(c => c.case_id === currentAdminCase.case_id) || currentAdminCase;
+      const msgs = await ABHC_DB.getSupportMessages(currentAdminCase.case_id);
+      const body = document.getElementById('adminChatBody');
+      body.innerHTML = msgs.map(m => `
+        <div class="chat-msg ${m.sender_type === 'guest' ? 'msg-bot' : (m.sender_type === 'system' ? 'msg-sys' : 'msg-guest')}">
+          ${m.sender_type !== 'guest' && m.sender_type !== 'system' ? `<div style="font-size:0.65rem;opacity:0.7;margin-bottom:0.2rem;">${m.sender_name}</div>` : ''}
+          ${m.message}
+        </div>
+      `).join('');
+      body.scrollTop = body.scrollHeight;
+    }
+  }
+}
+
+async function renderDirectory() {
+  const cases = await ABHC_DB.getSupportCases();
+  document.getElementById('directoryTbody').innerHTML = cases.map(c => `
+    <tr>
+      <td style="font-family:monospace;">${c.case_id}</td>
+      <td><strong>${c.guest_name}</strong></td>
+      <td><span class="badge ${c.status==='active'?'badge-confirmed':(c.status==='pending'?'badge-pending':'badge-cancelled')}">${c.status}</span></td>
+      <td>${c.owner || '—'}</td>
+      <td>${fmt(c.created_at)}</td>
+      <td><button class="btn btn-ghost btn-xs" onclick="navTo('chat'); loadAdminCase('${c.case_id}');">View</button></td>
+    </tr>
+  `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">No cases found.</td></tr>';
+}
+
+async function loadAdminCase(id) {
+  const cases = await ABHC_DB.getSupportCases();
+  currentAdminCase = cases.find(c => c.case_id === id);
+  
+  document.getElementById('workspaceEmpty').style.display = 'none';
+  document.getElementById('workspaceContent').style.display = 'flex';
+  
+  document.getElementById('csTab-info').innerHTML = `
+    <div class="rev-line"><span>Name</span><span>${currentAdminCase.guest_name}</span></div>
+    <div class="rev-line"><span>Email</span><span>${currentAdminCase.guest_email}</span></div>
+    <div class="rev-line"><span>Phone</span><span>${currentAdminCase.guest_phone || '—'}</span></div>
+    <div class="rev-line"><span>Ref No.</span><span>${currentAdminCase.ref_no || '—'}</span></div>
+    <div style="margin-top:1rem;font-size:0.85rem;"><strong>Concern:</strong><br>${currentAdminCase.concern}</div>
+  `;
+
+  const notes = currentAdminCase.internal_notes || [];
+  document.getElementById('csTab-notes').innerHTML = `
+    <div style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem;">
+      ${notes.map(n => `<div style="background:var(--bg);padding:0.6rem;border-radius:8px;margin-bottom:0.5rem;font-size:0.8rem;"><strong>${n.staff}</strong>: ${n.text}</div>`).join('')}
+    </div>
+    <textarea id="csNewNote" class="chat-input" rows="2" placeholder="Add note..."></textarea>
+    <button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="addCsNote()">Save Note</button>
+  `;
+
+  const inputArea = document.getElementById('adminInputArea');
+  if (currentAdminCase.status === 'pending' || (currentAdminCase.status === 'active' && currentAdminCase.owner !== adminProfile)) {
+    inputArea.innerHTML = `<button class="btn btn-sunset" style="width:100%;" onclick="claimCase()">Claim & Reply</button>`;
+  } else if (currentAdminCase.status === 'closed') {
+    inputArea.innerHTML = `<div style="text-align:center;width:100%;color:var(--text-muted);font-size:0.85rem;">This case is closed.</div>`;
+  } else {
+    inputArea.innerHTML = `
+      <input type="text" id="adminChatInput" class="chat-input" placeholder="Type reply..." onkeypress="if(event.key==='Enter') sendAdminMsg()">
+      <button class="btn btn-primary" onclick="sendAdminMsg()">Send</button>
+      <button class="btn btn-danger" onclick="closeCase()" title="Close Case">✕</button>
+    `;
+  }
+  await refreshSupportUI();
+}
+
+function switchCsTab(tab) {
+  document.querySelectorAll('.cs-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.cs-pane').forEach(p => p.style.display = 'none');
+  event.target.classList.add('active');
+  document.getElementById('csTab-'+tab).style.display = tab === 'chat' ? 'flex' : 'block';
+}
+
+async function claimCase() {
+  await ABHC_DB.updateSupportCase(currentAdminCase.case_id, { status: 'active', owner: adminProfile });
+  await ABHC_DB.sendSupportMessage({ case_id: currentAdminCase.case_id, sender_type: 'system', sender_name: 'System', message: `${adminProfile} joined the chat.` });
+  await logSystemAction(`claimed support case ${currentAdminCase.case_id}`);
+  loadAdminCase(currentAdminCase.case_id);
+}
+
+async function closeCase() {
+  await ABHC_DB.updateSupportCase(currentAdminCase.case_id, { status: 'closed', closed_at: new Date().toISOString() });
+  await ABHC_DB.sendSupportMessage({ case_id: currentAdminCase.case_id, sender_type: 'system', sender_name: 'System', message: `Chat closed by ${adminProfile}.` });
+  await logSystemAction(`closed support case ${currentAdminCase.case_id}`);
+  loadAdminCase(currentAdminCase.case_id);
+}
+
+async function sendAdminMsg() {
+  const input = document.getElementById('adminChatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  await ABHC_DB.sendSupportMessage({ case_id: currentAdminCase.case_id, sender_type: 'staff', sender_name: adminProfile, message: text });
+  // UI refreshes automatically via WebSocket listener!
+}
+
+async function addCsNote() {
+  const text = document.getElementById('csNewNote').value.trim();
+  if (!text) return;
+  const newNotes = [...(currentAdminCase.internal_notes || []), { staff: adminProfile, text, date: new Date().toISOString() }];
+  await ABHC_DB.updateSupportCase(currentAdminCase.case_id, { internal_notes: newNotes });
+  loadAdminCase(currentAdminCase.case_id);
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────

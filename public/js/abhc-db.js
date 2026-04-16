@@ -113,7 +113,14 @@ const ABHC_DB = (() => {
       d.setDate(d.getDate() + 1);
     }
     return Math.max(0, totalQty - maxBookedOnAnyDay);
-  }
+
+// ── SUPPORT MODULE ─────────────────────────────────────────────────────────
+  function getKB() { return req('/api/support?action=kb'); }
+  function getSupportCases() { return req('/api/support?action=cases'); }
+  function createSupportCase(data) { return req('/api/support?action=createCase', 'POST', data); }
+  function updateSupportCase(caseId, data) { return req(`/api/support?action=updateCase&caseId=${caseId}`, 'PATCH', data); }
+  function getSupportMessages(caseId) { return req(`/api/support?action=messages&caseId=${caseId}`); }
+  function sendSupportMessage(data) { return req('/api/support?action=sendMessage', 'POST', data); }
 
   return {
     getRooms, saveRoom, updateRoom, deleteRoom,

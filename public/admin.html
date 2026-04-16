@@ -39,7 +39,13 @@
     <a class="nav-item" data-page="calendar" onclick="navTo('calendar')">
       <span class="nav-icon">🗓️</span>Availability Calendar
     </a>
+
+    <div class="nav-section-label">Customer Service</div>
+    <a class="nav-item" data-page="chat" onclick="navTo('chat')"><span class="nav-icon">💬</span>Live Chat</a>
+    <a class="nav-item" data-page="directory" onclick="navTo('directory')"><span class="nav-icon">🗂️</span>Case Directory</a>
+
     <div class="nav-section-label">Management</div>
+    
     <a class="nav-item" data-page="rooms" onclick="navTo('rooms')">
       <span class="nav-icon">🏠</span>Manage Rooms
     </a>
@@ -138,6 +144,51 @@
       <div class="card" style="margin-bottom:1.2rem;">
         <div class="card-title">🗓️ Availability Overview</div>
         <div id="adminCalWrap" style="overflow-x:auto;"></div>
+      </div>
+    </div>
+
+
+    <!-- CUSTOMER SERVICE PAGE -->
+    <div class="page" id="page-chat">
+      <div class="chat-layout">
+        <div class="chat-sidebar">
+          <div class="chat-queue-header">🔴 Pending Cases</div>
+          <div id="queuePending"></div>
+          <div class="chat-queue-header" style="margin-top:1.5rem;">🟢 My Active Cases</div>
+          <div id="queueActive"></div>
+        </div>
+        <div class="chat-workspace card" style="padding:0; overflow:hidden; display:flex; flex-direction:column; background:white;">
+          <div id="workspaceEmpty" style="padding:4rem 2rem; text-align:center; color:var(--text-muted);">Select a case from the queue to start working.</div>
+          
+          <div id="workspaceContent" style="display:none; flex:1; flex-direction:column;">
+            <div style="display:flex; border-bottom:1px solid var(--sand-mid); background:var(--sand);">
+              <div class="cs-tab active" onclick="switchCsTab('chat')">Chat</div>
+              <div class="cs-tab" onclick="switchCsTab('info')">Case Info</div>
+              <div class="cs-tab" onclick="switchCsTab('notes')">Internal Notes</div>
+            </div>
+            
+            <div id="csTab-chat" class="cs-pane" style="display:flex; flex-direction:column; flex:1;">
+              <div class="chat-body" id="adminChatBody" style="flex:1;"></div>
+              <div class="chat-input-area" id="adminInputArea">
+                <input type="text" id="adminChatInput" class="chat-input" placeholder="Type reply...">
+                <button class="btn btn-primary" onclick="sendAdminMsg()">Send</button>
+              </div>
+            </div>
+            
+            <div id="csTab-info" class="cs-pane" style="display:none; padding:1.5rem;"></div>
+            
+            <div id="csTab-notes" class="cs-pane" style="display:none; padding:1.5rem;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-directory">
+      <div class="card" style="padding:0; overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr><th>Case ID</th><th>Guest Name</th><th>Status</th><th>Owner</th><th>Created At</th><th>Action</th></tr></thead>
+          <tbody id="directoryTbody"></tbody>
+        </table>
       </div>
     </div>
 
