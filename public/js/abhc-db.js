@@ -58,31 +58,37 @@ const ABHC_DB = (() => {
     ) || null;
   }
 
-  // ── AVAILABILITY HELPERS ───────────────────────────────────────────────────
+// ── AVAILABILITY HELPERS ───────────────────────────────────────────────────
   function fmtD(d) { return d instanceof Date ? d.toISOString().split('T')[0] : d; }
-
-  function _bookedMap(bookings) {
-    const map = {};
-    bookings.forEach(b => {
-      if (b.status === 'cancelled') return;
-      const roomId = b.room_id || b.roomId;
-      let d  = new Date(b.check_in  || b.checkIn);
-      const co = new Date(b.check_out || b.checkOut);
-      while (d < co) {
-        const k = fmtD(d);
-        if (!map[k]) map[k] = {};
-        map[k][roomId] = true;
-        d.setDate(d.getDate() + 1);
-      }
-    });
-    return map;
-  }
 
   async function allBooked(date) {
     const [rooms, bookings] = await Promise.all([getRooms(), getBookings()]);
-    const map = _bookedMap(bookings);
-    const k = fmtD(date);
-    return rooms.filter(r => r.active).every(r => !!(map[k] && map[k][r.id]));
+    const activeRooms = rooms.filter(r => r.active);
+    
+    // Map how many units of each room are booked on this specific date
+    const bookedCounts = {};
+    const targetDate = new Date(date);
+    targetDate.setHours(0,0,0,0);
+
+    bookings.forEach(b => {
+      if (b.status === 'cancelled') return;
+      const bCi = new Date(b.check_in || b.checkIn);
+      const bCo = new Date(b.check_out || b.checkOut);
+      
+      // If the target date falls inside this booking's stay
+      if (targetDate >= bCi && targetDate < bCo) {
+        const rid = b.room_id || b.roomId;
+        // Add the quantity booked (default to 1 if old data)
+        bookedCounts[rid] = (bookedCounts[rid] || 0) + (b.room_quantity || 1);
+      }
+    });
+
+    // Check if EVERY active room is at or over capacity
+    return activeRooms.every(r => {
+      const totalUnits = r.quantity || 1;
+      const bookedUnits = bookedCounts[r.id] || 0;
+      return bookedUnits >= totalUnits;
+    });
   }
 
   async function getRoomAvailability(roomId, ci, co) {

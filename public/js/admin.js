@@ -1189,6 +1189,7 @@ async function renderLogsTab() {
 let currentAdminCase = null;
 let adminProfile = null;
 let adminRealtimeChannel = null;
+let allStaffList = [];
 
 async function initSupport() {
   const { data: { session } } = await window.supa.auth.getSession();
@@ -1197,20 +1198,18 @@ async function initSupport() {
     if (p) adminProfile = `${p.first_name} ${p.last_name}`;
   }
   
+  // Fetch all staff for the ownership transfer dropdown
+  const { data: profiles } = await window.supa.from('staff_profiles').select('first_name, last_name');
+  if (profiles) allStaffList = profiles.map(p => `${p.first_name} ${p.last_name}`);
+  
   await refreshSupportUI();
 
-  // WebSocket Listener (Zero Polling!)
   if (!adminRealtimeChannel) {
     adminRealtimeChannel = window.supa.channel('admin-support-tracker')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_cases' }, () => {
-        refreshSupportUI(); 
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_cases' }, () => refreshSupportUI())
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, payload => {
-        if (currentAdminCase && payload.new.case_id === currentAdminCase.case_id) {
-          refreshSupportUI();
-        }
-      })
-      .subscribe();
+        if (currentAdminCase && payload.new.case_id === currentAdminCase.case_id) refreshSupportUI();
+      }).subscribe();
   }
 }
 
@@ -1231,15 +1230,7 @@ async function refreshSupportUI() {
 
     if (currentAdminCase) {
       currentAdminCase = cases.find(c => c.case_id === currentAdminCase.case_id) || currentAdminCase;
-      const msgs = await ABHC_DB.getSupportMessages(currentAdminCase.case_id);
-      const body = document.getElementById('adminChatBody');
-      body.innerHTML = msgs.map(m => `
-        <div class="chat-msg ${m.sender_type === 'guest' ? 'msg-bot' : (m.sender_type === 'system' ? 'msg-sys' : 'msg-guest')}">
-          ${m.sender_type !== 'guest' && m.sender_type !== 'system' ? `<div style="font-size:0.65rem;opacity:0.7;margin-bottom:0.2rem;">${m.sender_name}</div>` : ''}
-          ${m.message}
-        </div>
-      `).join('');
-      body.scrollTop = body.scrollHeight;
+      loadAdminCase(currentAdminCase.case_id, false); // refresh details silently
     }
   }
 }
@@ -1250,7 +1241,7 @@ async function renderDirectory() {
     <tr>
       <td style="font-family:monospace;">${c.case_id}</td>
       <td><strong>${c.guest_name}</strong></td>
-      <td><span class="badge ${c.status==='active'?'badge-confirmed':(c.status==='pending'?'badge-pending':'badge-cancelled')}">${c.status}</span></td>
+      <td><span class="badge ${c.status==='active'?'badge-confirmed':(c.status==='pending'?'badge-pending':'badge-cancelled')}">${c.status.toUpperCase()}</span></td>
       <td>${c.owner || '—'}</td>
       <td>${fmt(c.created_at)}</td>
       <td><button class="btn btn-ghost btn-xs" onclick="navTo('chat'); loadAdminCase('${c.case_id}');">View</button></td>
@@ -1258,21 +1249,49 @@ async function renderDirectory() {
   `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">No cases found.</td></tr>';
 }
 
-async function loadAdminCase(id) {
+async function loadAdminCase(id, switchTab = true) {
   const cases = await ABHC_DB.getSupportCases();
   currentAdminCase = cases.find(c => c.case_id === id);
-  
+  if (!currentAdminCase) return;
+
   document.getElementById('workspaceEmpty').style.display = 'none';
   document.getElementById('workspaceContent').style.display = 'flex';
   
+  const dForm = (d) => d ? new Date(d).toLocaleString('en-PH', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+  const staffOptions = allStaffList.map(s => `<option value="${s}">`).join('');
+
+  // 1. FORMATTED CASE INFO TAB
   document.getElementById('csTab-info').innerHTML = `
-    <div class="rev-line"><span>Name</span><span>${currentAdminCase.guest_name}</span></div>
-    <div class="rev-line"><span>Email</span><span>${currentAdminCase.guest_email}</span></div>
-    <div class="rev-line"><span>Phone</span><span>${currentAdminCase.guest_phone || '—'}</span></div>
-    <div class="rev-line"><span>Ref No.</span><span>${currentAdminCase.ref_no || '—'}</span></div>
-    <div style="margin-top:1rem;font-size:0.85rem;"><strong>Concern:</strong><br>${currentAdminCase.concern}</div>
+    <div style="margin-bottom:1.5rem; background:var(--bg); padding:1.2rem; border-radius:12px; border:1px solid var(--sand-mid);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--sand-mid); padding-bottom:0.8rem;">
+        <span style="color:var(--text-muted); font-size:0.85rem; font-weight:600;">Case Owner</span>
+        <div id="ownerDisplay" style="font-weight:600; color:var(--aqua-deep); cursor:pointer; text-decoration:underline;" onclick="document.getElementById('ownerEdit').style.display='flex'; this.style.display='none';">
+          ${currentAdminCase.owner || 'Unassigned (Click to assign)'}
+        </div>
+        <div id="ownerEdit" style="display:none; gap:0.5rem; align-items:center;">
+          <input type="text" id="newOwnerInput" list="staffList" class="chat-input" style="padding:0.4rem; font-size:0.8rem; width:160px;" value="${currentAdminCase.owner || ''}" placeholder="Type staff name...">
+          <datalist id="staffList">${staffOptions}</datalist>
+          <button class="btn btn-primary btn-xs" onclick="saveCaseOwner()">Save</button>
+          <button class="btn btn-ghost btn-xs" onclick="document.getElementById('ownerDisplay').style.display='block'; document.getElementById('ownerEdit').style.display='none';">Cancel</button>
+        </div>
+      </div>
+      <div class="rev-line"><span>Name:</span><span style="font-weight:500;">${currentAdminCase.guest_name}</span></div>
+      <div class="rev-line"><span>Email:</span><span>${currentAdminCase.guest_email}</span></div>
+      <div class="rev-line"><span>Phone:</span><span>${currentAdminCase.guest_phone || 'None'}</span></div>
+      <div class="rev-line"><span>Ref No:</span><span>${currentAdminCase.ref_no || 'None'}</span></div>
+      <div class="rev-line" style="border:none; margin-top:0.5rem; flex-direction:column; gap:0.4rem;">
+        <span>Concern:</span>
+        <span style="font-weight:500; background:white; padding:0.8rem; border-radius:8px; border:1px solid var(--sand-mid);">${currentAdminCase.concern}</span>
+      </div>
+    </div>
+    <div style="background:var(--bg); padding:1.2rem; border-radius:12px; border:1px solid var(--sand-mid);">
+      <div class="rev-line"><span>Case Status:</span><span class="badge ${currentAdminCase.status==='active'||currentAdminCase.status==='pending'?'badge-pending':'badge-confirmed'}">${currentAdminCase.status.toUpperCase()}</span></div>
+      <div class="rev-line"><span>Case Creation Date:</span><span>${dForm(currentAdminCase.created_at)}</span></div>
+      <div class="rev-line"><span>Case Closing Date:</span><span>${dForm(currentAdminCase.closed_at)}</span></div>
+    </div>
   `;
 
+  // 2. INTERNAL NOTES TAB
   const notes = currentAdminCase.internal_notes || [];
   document.getElementById('csTab-notes').innerHTML = `
     <div style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem;">
@@ -1282,19 +1301,48 @@ async function loadAdminCase(id) {
     <button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="addCsNote()">Save Note</button>
   `;
 
+  // 3. MESSAGES & ACTIVITY LOGS
+  const msgs = await ABHC_DB.getSupportMessages(currentAdminCase.case_id);
+  
+  // Populate Activity Logs Tab
+  const logs = msgs.filter(m => m.sender_type === 'system');
+  document.getElementById('csTab-logs').innerHTML = logs.map(l => `
+    <div style="font-size:0.8rem; border-bottom:1px solid var(--sand-mid); padding:0.6rem 0;">
+      <span style="color:var(--text-muted); margin-right:0.8rem; font-family:monospace;">${dForm(l.created_at)}</span>
+      <span style="font-weight:500;">${l.message}</span>
+    </div>
+  `).join('') || '<div style="font-size:0.85rem; color:var(--text-muted); text-align:center; padding:2rem;">No activity logs found.</div>';
+
+  // Populate Chat Body
+  document.getElementById('adminChatBody').innerHTML = msgs.filter(m => m.sender_type !== 'system').map(m => {
+    const timeStr = new Date(m.created_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+    const isGuest = m.sender_type === 'guest';
+    return `
+      <div class="chat-msg ${isGuest ? 'msg-bot' : 'msg-guest'}">
+        ${!isGuest ? `<div style="font-size:0.65rem;opacity:0.7;margin-bottom:0.2rem;">${m.sender_name}</div>` : ''}
+        ${m.message}
+        <div style="font-size:0.6rem; opacity:0.6; text-align:right; margin-top:4px;">${timeStr}</div>
+      </div>
+    `;
+  }).join('');
+  document.getElementById('adminChatBody').scrollTop = document.getElementById('adminChatBody').scrollHeight;
+
+  // 4. ACTION BUTTONS
   const inputArea = document.getElementById('adminInputArea');
   if (currentAdminCase.status === 'pending' || (currentAdminCase.status === 'active' && currentAdminCase.owner !== adminProfile)) {
-    inputArea.innerHTML = `<button class="btn btn-sunset" style="width:100%;" onclick="claimCase()">Claim & Reply</button>`;
-  } else if (currentAdminCase.status === 'closed') {
-    inputArea.innerHTML = `<div style="text-align:center;width:100%;color:var(--text-muted);font-size:0.85rem;">This case is closed.</div>`;
+    inputArea.innerHTML = `<button class="btn btn-sunset" style="width:100%;" onclick="claimCase()">Claim Case & Reply</button>`;
+  } else if (['closed', 'resolved', 'abandoned'].includes(currentAdminCase.status)) {
+    inputArea.innerHTML = `<div style="text-align:center;width:100%;color:var(--text-muted);font-size:0.85rem;">This case is marked as ${currentAdminCase.status.toUpperCase()}.</div>`;
   } else {
     inputArea.innerHTML = `
       <input type="text" id="adminChatInput" class="chat-input" placeholder="Type reply..." onkeypress="if(event.key==='Enter') sendAdminMsg()">
       <button class="btn btn-primary" onclick="sendAdminMsg()">Send</button>
-      <button class="btn btn-danger" onclick="closeCase()" title="Close Case">✕</button>
+      <div style="display:flex; gap:0.5rem; margin-left:0.5rem; border-left:1px solid var(--sand-mid); padding-left:0.5rem;">
+        <button class="btn btn-success" onclick="updateCaseStatus('resolved')" title="Mark Resolved">✅ Resolved</button>
+        <button class="btn btn-sunset" onclick="updateCaseStatus('abandoned')" title="Mark Abandoned">⚠️ Abandoned</button>
+      </div>
     `;
   }
-  await refreshSupportUI();
 }
 
 function switchCsTab(tab) {
@@ -1306,16 +1354,22 @@ function switchCsTab(tab) {
 
 async function claimCase() {
   await ABHC_DB.updateSupportCase(currentAdminCase.case_id, { status: 'active', owner: adminProfile });
-  await ABHC_DB.sendSupportMessage({ case_id: currentAdminCase.case_id, sender_type: 'system', sender_name: 'System', message: `${adminProfile} joined the chat.` });
+  await ABHC_DB.sendSupportMessage({ case_id: currentAdminCase.case_id, sender_type: 'system', sender_name: 'System', message: `${adminProfile} claimed and joined the chat.` });
   await logSystemAction(`claimed support case ${currentAdminCase.case_id}`);
-  loadAdminCase(currentAdminCase.case_id);
 }
 
-async function closeCase() {
-  await ABHC_DB.updateSupportCase(currentAdminCase.case_id, { status: 'closed', closed_at: new Date().toISOString() });
-  await ABHC_DB.sendSupportMessage({ case_id: currentAdminCase.case_id, sender_type: 'system', sender_name: 'System', message: `Chat closed by ${adminProfile}.` });
-  await logSystemAction(`closed support case ${currentAdminCase.case_id}`);
-  loadAdminCase(currentAdminCase.case_id);
+async function saveCaseOwner() {
+  const newOwner = document.getElementById('newOwnerInput').value.trim();
+  if (!newOwner) return;
+  await ABHC_DB.updateSupportCase(currentAdminCase.case_id, { owner: newOwner });
+  await ABHC_DB.sendSupportMessage({ case_id: currentAdminCase.case_id, sender_type: 'system', sender_name: 'System', message: `Case ownership transferred to ${newOwner}.` });
+  await logSystemAction(`transferred case ${currentAdminCase.case_id} to ${newOwner}`);
+}
+
+async function updateCaseStatus(newStatus) {
+  await ABHC_DB.updateSupportCase(currentAdminCase.case_id, { status: newStatus, closed_at: new Date().toISOString() });
+  await ABHC_DB.sendSupportMessage({ case_id: currentAdminCase.case_id, sender_type: 'system', sender_name: 'System', message: `Case marked as ${newStatus.toUpperCase()} by ${adminProfile}.` });
+  await logSystemAction(`marked support case ${currentAdminCase.case_id} as ${newStatus}`);
 }
 
 async function sendAdminMsg() {
@@ -1323,8 +1377,8 @@ async function sendAdminMsg() {
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
-  await ABHC_DB.sendSupportMessage({ case_id: currentAdminCase.case_id, sender_type: 'staff', sender_name: adminProfile, message: text });
-  // UI refreshes automatically via WebSocket listener!
+  // Fire and forget (Realtime listener will auto-refresh UI)
+  ABHC_DB.sendSupportMessage({ case_id: currentAdminCase.case_id, sender_type: 'staff', sender_name: adminProfile, message: text });
 }
 
 async function addCsNote() {
@@ -1332,7 +1386,7 @@ async function addCsNote() {
   if (!text) return;
   const newNotes = [...(currentAdminCase.internal_notes || []), { staff: adminProfile, text, date: new Date().toISOString() }];
   await ABHC_DB.updateSupportCase(currentAdminCase.case_id, { internal_notes: newNotes });
-  loadAdminCase(currentAdminCase.case_id);
+  loadAdminCase(currentAdminCase.case_id, false);
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────

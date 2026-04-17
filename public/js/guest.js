@@ -516,10 +516,33 @@ loadApprovedFeed();
 
 
 // ── GUEST CHAT WIDGET ─────────────────────────────────────────────────────────
-let chatCaseId = null;
+let chatCaseId = localStorage.getItem('abhc_chat_case_id');
 let kbData = [];
-let botMode = true;
+let botMode = !chatCaseId;
 let guestRealtimeChannel = null;
+
+// Initialize session on page load if they refreshed
+document.addEventListener('DOMContentLoaded', async () => {
+  if (chatCaseId) {
+    const cases = await ABHC_DB.getSupportCases();
+    const myCase = cases.find(c => c.case_id === chatCaseId);
+    // If case exists and isn't closed/resolved/abandoned, restore it!
+    if (myCase && !['closed', 'resolved', 'abandoned'].includes(myCase.status)) {
+      botMode = false;
+      document.getElementById('guestEndChatBtn').style.display = 'inline-block';
+      const msgs = await ABHC_DB.getSupportMessages(chatCaseId);
+      const body = document.getElementById('guestChatBody');
+      body.innerHTML = '';
+      msgs.forEach(m => {
+        const type = m.sender_type === 'guest' ? 'guest' : (m.sender_type === 'system' ? 'sys' : 'bot');
+        appendMsg(type, m.message, m.created_at);
+      });
+      setupGuestRealtime();
+    } else {
+      endGuestChat(true); // Silent clean up if admin already closed it
+    }
+  }
+});
 
 async function toggleGuestChat() {
   const win = document.getElementById('guestChatWindow');
@@ -530,9 +553,15 @@ async function toggleGuestChat() {
   }
 }
 
-function appendMsg(type, text) {
+// Added Timestamp logic!
+function appendMsg(type, text, timestamp = new Date().toISOString()) {
+  const timeStr = new Date(timestamp).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
   const body = document.getElementById('guestChatBody');
-  body.innerHTML += `<div class="chat-msg msg-${type}">${text}</div>`;
+  body.innerHTML += `
+    <div class="chat-msg msg-${type}">
+      ${text}
+      ${type !== 'sys' ? `<div style="font-size:0.6rem; opacity:0.6; text-align:right; margin-top:4px;">${timeStr}</div>` : ''}
+    </div>`;
   body.scrollTop = body.scrollHeight;
 }
 
@@ -541,6 +570,8 @@ async function sendGuestMsg() {
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
+  
+  // OPTIMISTIC UI: Show message instantly!
   appendMsg('guest', text);
 
   if (botMode) {
@@ -556,7 +587,8 @@ async function sendGuestMsg() {
       }
     }, 600);
   } else if (chatCaseId) {
-    await ABHC_DB.sendSupportMessage({ case_id: chatCaseId, sender_type: 'guest', sender_name: 'Guest', message: text });
+    // Fire and forget (syncs to DB in background)
+    ABHC_DB.sendSupportMessage({ case_id: chatCaseId, sender_type: 'guest', sender_name: 'Guest', message: text });
   }
 }
 
@@ -595,24 +627,36 @@ async function submitPreChat() {
 
   chatCaseId = newId;
   botMode = false;
-  appendMsg('sys', `Case ${newId} created. Please wait for an agent...`);
+  localStorage.setItem('abhc_chat_case_id', newId); // Protect against refreshes!
+  document.getElementById('guestEndChatBtn').style.display = 'inline-block';
   
-  // Realtime WebSocket Listener (Zero Polling!)
+  appendMsg('sys', `Case ${newId} created. Please wait for an agent...`);
+  setupGuestRealtime();
+}
+
+function setupGuestRealtime() {
   if (!guestRealtimeChannel) {
     guestRealtimeChannel = window.supa.channel(`guest-chat-${chatCaseId}`)
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'support_messages', 
-        filter: `case_id=eq.${chatCaseId}` 
-      }, (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages', filter: `case_id=eq.${chatCaseId}` }, (payload) => {
         if (payload.new.sender_type !== 'guest') {
           const typeMap = { 'system': 'sys', 'bot': 'bot', 'staff': 'bot' };
-          appendMsg(typeMap[payload.new.sender_type], payload.new.message);
+          appendMsg(typeMap[payload.new.sender_type], payload.new.message, payload.new.created_at);
         }
-      })
-      .subscribe();
+      }).subscribe();
   }
+}
+
+async function endGuestChat(silent = false) {
+  if (chatCaseId && !botMode && !silent) {
+    await ABHC_DB.updateSupportCase(chatCaseId, { status: 'abandoned', closed_at: new Date().toISOString() });
+    await ABHC_DB.sendSupportMessage({ case_id: chatCaseId, sender_type: 'system', sender_name: 'System', message: 'Guest has ended the conversation and left the chat.' });
+  }
+  localStorage.removeItem('abhc_chat_case_id');
+  chatCaseId = null; botMode = true;
+  document.getElementById('guestChatBody').innerHTML = '';
+  document.getElementById('guestEndChatBtn').style.display = 'none';
+  if (guestRealtimeChannel) { window.supa.removeChannel(guestRealtimeChannel); guestRealtimeChannel = null; }
+  document.getElementById('guestChatWindow').classList.remove('open');
 }
 
 // ── INIT CALENDARS ────────────────────────────────────────────────────────────
