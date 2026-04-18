@@ -45,3 +45,23 @@ CREATE TABLE IF NOT EXISTS bookings (
   CONSTRAINT valid_dates CHECK (check_out > check_in)
 );
 -- (The rest of your Indexes and Triggers remain exactly the same)
+-- -- BUSINESS DOCS ----------------------------------------------
+CREATE TABLE IF NOT EXISTS business_docs (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  filename     TEXT        NOT NULL,
+  file_url     TEXT        NOT NULL,
+  size_kb      INTEGER     NOT NULL,
+  uploaded_by  TEXT        NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Set up Storage Bucket for documents
+INSERT INTO storage.buckets (id, name, public) VALUES ('business_docs', 'business_docs', true) ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'business_docs');
+CREATE POLICY "Admin Uploads" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'business_docs');
+CREATE POLICY "Admin Updates" ON storage.objects FOR UPDATE USING (bucket_id = 'business_docs');
+CREATE POLICY "Admin Deletes" ON storage.objects FOR DELETE USING (bucket_id = 'business_docs');
+
+-- Add emp_id to staff_profiles
+ALTER TABLE staff_profiles ADD COLUMN IF NOT EXISTS emp_id TEXT UNIQUE;

@@ -4,9 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Avellano's – Admin Panel</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600&family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&family=Karla:wght@300;400;500&family=Lora:ital,wght@0,400;0,500;1,400&family=Montserrat:wght@300;400;500;600&family=Nunito:wght@300;400;500;600&family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Poppins:wght@300;400;500&family=Rubik:wght@300;400;500&family=Space+Grotesk:wght@300;400;500;600&family=Syne:wght@400;500;600;700&family=Work+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/main.css">
 <link rel="stylesheet" href="css/admin.css">
+<link rel="stylesheet" href="css/guest.css">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/auth.js"></script>
@@ -28,6 +29,10 @@
     <div class="logo-sub">Admin Panel</div>
   </div>
   <nav class="sidebar-nav">
+    <div class="nav-section-label">System</div>
+    <a class="nav-item" data-page="business" onclick="navTo('business')">
+      <span class="nav-icon">🏢</span>Business Information
+    </a>
     <div class="nav-section-label">Overview</div>
     <a class="nav-item active" data-page="dashboard" onclick="navTo('dashboard')">
       <span class="nav-icon">📊</span>Revenue Dashboard
@@ -61,6 +66,9 @@
     <a class="nav-item" data-page="guests" onclick="navTo('guests')">
       <span class="nav-icon">🚩</span>Flagged Guests
     </a>
+    <a class="nav-item" data-page="siteeditor" onclick="navTo('siteeditor')">
+      <span class="nav-icon">🎨</span>Site Editor
+    </a>
     <a class="nav-item" data-page="logs" onclick="navTo('logs')">
       <span class="nav-icon">📜</span>System Logs
     </a>
@@ -86,6 +94,11 @@
   </div>
 
   <div class="content">
+
+    <!-- BUSINESS INFORMATION PAGE -->
+    <div class="page" id="page-business">
+      <!-- Populated by admin.js -->
+    </div>
 
     <!-- DASHBOARD PAGE -->
     <div class="page active" id="page-dashboard">
@@ -160,7 +173,7 @@
         <div class="chat-workspace card" style="padding:0; overflow:hidden; display:flex; flex-direction:column; background:white;">
           <div id="workspaceEmpty" style="padding:4rem 2rem; text-align:center; color:var(--text-muted);">Select a case from the queue to start working.</div>
           
-          <div id="workspaceContent" style="display:none; flex:1; flex-direction:column;">
+          <div id="workspaceContent" style="display:none; flex:1; flex-direction:column; min-height:0;">
             <div style="display:flex; border-bottom:1px solid var(--sand-mid); background:var(--sand);">
               <div class="cs-tab active" onclick="switchCsTab('chat')">Chat</div>
               <div class="cs-tab" onclick="switchCsTab('info')">Case Info</div>
@@ -168,8 +181,8 @@
               <div class="cs-tab" onclick="switchCsTab('logs')">Activity Logs</div>
             </div>
             
-            <div id="csTab-chat" class="cs-pane" style="display:flex; flex-direction:column; flex:1;">
-              <div class="chat-body" id="adminChatBody" style="flex:1;"></div>
+            <div id="csTab-chat" class="cs-pane" style="display:flex; flex-direction:column; flex:1; min-height:0;">
+              <div class="chat-body" id="adminChatBody" style="flex:1; min-height:0;"></div>
               <div class="chat-input-area" id="adminInputArea">
                 <input type="text" id="adminChatInput" class="chat-input" placeholder="Type reply...">
                 <button class="btn btn-primary" onclick="sendAdminMsg()">Send</button>
@@ -362,6 +375,21 @@
       </div>
     </div>
 
+    <!-- SITE EDITOR PAGE -->
+    <div class="page" id="page-siteeditor">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <h2 style="font-size:1.5rem; font-weight:600; margin:0;">🎨 Site Editor</h2>
+          <p style="font-size:0.82rem; color:var(--text-muted); margin:0.3rem 0 0;">Click any highlighted text to edit. Changes save directly to the live guest page.</p>
+        </div>
+        <button class="btn btn-primary" id="siteEditorSaveBtn" onclick="saveSiteEditorContent()" style="position:sticky; top:1rem; z-index:50;">💾 Save All Changes</button>
+      </div>
+
+      <div id="siteEditorContainer" class="se-preview-wrap">
+        <div style="text-align:center; padding:3rem; color:var(--text-muted);">Loading site preview...</div>
+      </div>
+    </div>
+
   </div><!-- /content -->
 </main>
 
@@ -373,16 +401,7 @@
   <div class="modal">
     <div class="modal-title" id="bookingModalTitle">New Booking</div>
     <input type="hidden" id="editBookingId">
-    <div class="form-row">
-      <div class="form-group"><label>Guest First Name</label><input type="text"  id="bFname" placeholder="First name"></div>
-      <div class="form-group"><label>Guest Last Name</label> <input type="text"  id="bLname" placeholder="Last name"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label>Email</label><input type="email" id="bEmail" placeholder="guest@email.com"></div>
-      <div class="form-group"><label>Phone</label><input type="tel"   id="bPhone" placeholder="+63 912 345 6789"></div>
-    </div>
-    <div class="form-group"><label>Room</label><select id="bRoom"></select></div>
-
+    
     <!-- Stay Type -->
     <div class="form-group">
       <label>Stay Type</label>
@@ -395,31 +414,80 @@
     <!-- 12-hour fields -->
     <div id="stayFields12">
       <div class="form-row">
-        <div class="form-group"><label>Check-In Date</label><input type="date"     id="bCheckIn12"   onchange="calcBTotal()"></div>
-        <div class="form-group"><label>Check-In Time</label><input type="time"     id="bCheckInTime" onchange="calcBTotal()" value="14:00"></div>
+        <div class="form-group"><label>Check-In Date</label><input type="date" id="bCheckIn12" onchange="renderUnitDropdown(); calcBTotal()"></div>
+        <div class="form-group"><label>Check-In Time</label><input type="time" id="bCheckInTime" onchange="calcBTotal()" value="14:00"></div>
       </div>
     </div>
 
     <!-- 24-hour fields -->
     <div id="stayFields24" style="display:none;">
       <div class="form-row">
-        <div class="form-group"><label>Check-In Date</label><input type="date"   id="bCheckIn24"  onchange="calcBTotal()"></div>
-        <div class="form-group"><label>Number of Days</label><input type="number" id="bDays"       onchange="calcBTotal()" min="1" value="1" placeholder="1"></div>
+        <div class="form-group"><label>Check-In Date</label><input type="date" id="bCheckIn24" onchange="renderUnitDropdown(); calcBTotal()"></div>
+        <div class="form-group"><label>Check-Out Date</label><input type="date" id="bCheckOut24" onchange="renderUnitDropdown(); calcBTotal()"></div>
       </div>
+    </div>
+
+    <div class="form-group"><label>Room</label><select id="bRoom" onchange="renderUnitDropdown()"></select></div>
+    <div id="bUnitContainer" style="margin-bottom:1rem; display:none;"></div>
+
+    <div class="form-row">
+      <div class="form-group"><label>Guest First Name</label><input type="text"  id="bFname" placeholder="First name"></div>
+      <div class="form-group"><label>Guest Last Name</label> <input type="text"  id="bLname" placeholder="Last name"></div>
+    </div>
+    
+    <div class="form-row">
+      <div class="form-group"><label>Email</label><input type="email" id="bEmail" placeholder="guest@email.com"></div>
+      <div class="form-group"><label>Phone</label><input type="tel"   id="bPhone" placeholder="+63 912 345 6789"></div>
     </div>
     <div class="form-group"><label>Status</label>
       <select id="bStatus">
         <option value="confirmed">Confirmed</option>
         <option value="pending">Pending</option>
-        <option value="cancelled">Cancelled</option>
       </select>
     </div>
     <div class="form-group"><label>Special Requests</label><textarea id="bReq" rows="2"></textarea></div>
     <div class="form-group"><label>Admin Notes</label><textarea id="bNotes" rows="2" placeholder="Internal notes..."></textarea></div>
     <div style="background:var(--sand);border-radius:10px;padding:0.9rem;font-size:0.84rem;" id="bTotalPreview"></div>
     <div class="modal-actions">
-      <button class="btn btn-ghost"   onclick="closeModal('bookingModal')">Cancel</button>
+      <button class="btn btn-danger" id="cancelBookingBtn" onclick="doCancelBooking()" style="display:none; margin-right:auto;">Cancel Booking</button>
+      <button class="btn btn-ghost"   onclick="closeModal('bookingModal')">Close</button>
       <button class="btn btn-primary" onclick="saveBooking()">Save Booking</button>
+    </div>
+  </div>
+</div>
+
+<!-- CANCEL/DELETE AUTH MODAL -->
+<div class="modal-overlay" id="cancelAuthModal">
+  <div class="modal">
+    <div class="modal-title" id="cancelAuthTitle">Authenticate Action</div>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;" id="cancelAuthDesc">Please confirm this action.</p>
+    
+    <!-- Booking reason (dropdown) — shown for cancel/delete booking -->
+    <div class="form-group" id="cancelReasonDropdownGroup">
+      <label>Reason</label>
+      <select id="cancelReasonSelect" onchange="document.getElementById('cancelReasonText').style.display = this.value === 'Other' ? 'block' : 'none'">
+        <option value="Guest requested cancellation">Guest requested cancellation</option>
+        <option value="Duplicate booking">Duplicate booking</option>
+        <option value="Demo booking">Demo booking</option>
+        <option value="Other">Other (Type manually)</option>
+      </select>
+      <input type="text" id="cancelReasonText" placeholder="Type reason here..." style="display:none; margin-top: 0.5rem;">
+    </div>
+    
+    <!-- Generic reason (text box) — shown for room deletion etc. -->
+    <div class="form-group" id="cancelReasonFreeTextGroup" style="display:none;">
+      <label>Reason for Deletion</label>
+      <input type="text" id="cancelReasonFreeText" placeholder="e.g. Room no longer in use">
+    </div>
+    
+    <div class="form-group" style="margin-top: 1rem;">
+      <label>Your Staff Password</label>
+      <input type="password" id="cancelAuthPassword" placeholder="Enter your password to authorize">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('cancelAuthModal')">Close</button>
+      <button class="btn btn-danger" id="cancelAuthSubmitBtn">Confirm Action</button>
     </div>
   </div>
 </div>
@@ -492,5 +560,6 @@
 
 <script src="js/abhc-db.js"></script>
 <script src="js/admin.js"></script>
+<script src="js/theme-animations.js"></script>
 </body>
 </html>

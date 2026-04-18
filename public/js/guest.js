@@ -3,21 +3,87 @@
    Avellano's Beach Hut Cottage
    ============================================================ */
 
-   // ── INITIALIZE SUPABASE FOR LIVE CHAT ─────────────────────────────────────────
+// ── CMS CONTENT LOADER ───────────────────────────────────────────────────────
+(async function loadSiteContent() {
+  try {
+    const items = await ABHC_DB.getSiteContent();
+    if (!items || items.length === 0) return; // No CMS data yet — keep HTML defaults
+    const map = {};
+    items.forEach(i => { map[i.key] = i.value; });
+    document.querySelectorAll('[data-sc]').forEach(el => {
+      const key = el.getAttribute('data-sc');
+      if (map[key] !== undefined && map[key] !== '') {
+        el.innerHTML = map[key];
+      }
+    });
+    // Apply theme
+    if (map['site_theme']) {
+      document.documentElement.setAttribute('data-theme', map['site_theme']);
+    }
+    // Update the Google Maps button if coordinates have been set
+    const mapBtn = document.getElementById('guestMapBtn');
+    if (mapBtn && map['contact_map_url']) {
+      mapBtn.setAttribute('onclick', `window.open('${map['contact_map_url']}','_blank')`);
+    }
+  } catch (e) {
+    // Silently fail — guest page still works with hardcoded defaults
+    console.warn('CMS content load skipped:', e.message);
+  }
+})();
+
+// ── WEATHER API ──────────────────────────────────────────────────────────────
+async function fetchWeather() {
+  try {
+    // Coordinates for a beach in the Philippines (e.g., near San Juan, La Union or similar)
+    const lat = 16.6627;
+    const lon = 120.3204;
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=sunset&timezone=Asia%2FManila`);
+    const data = await res.json();
+
+    if (data.current) {
+      const temp = Math.round(data.current.temperature_2m);
+      const hum = data.current.relative_humidity_2m;
+      const code = data.current.weather_code;
+      const sunset = new Date(data.daily.sunset[0]).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+      document.getElementById('weatherTemp').textContent = `${temp}°C`;
+      document.getElementById('weatherHumidity').textContent = `${hum}%`;
+      document.getElementById('weatherSunset').textContent = sunset;
+
+      const iconEl = document.getElementById('weatherIcon');
+      const msgEl = document.getElementById('weatherMsg');
+
+      if (code <= 3) {
+        iconEl.textContent = '☀️';
+        msgEl.textContent = 'Golden sun is out. Perfect for a dip! 🌊';
+      } else if (code <= 65) {
+        iconEl.textContent = '🌦️';
+        msgEl.textContent = 'Tropical showers passing through. Cozy hut vibes! ☕';
+      } else {
+        iconEl.textContent = '⛈️';
+        msgEl.textContent = 'The ocean is dancing. Stay safe and enjoy the rhythm! 🌩️';
+      }
+    }
+  } catch (e) { console.error("Weather fetch failed", e); }
+}
+fetchWeather();
+
+// ── INITIALIZE SUPABASE FOR LIVE CHAT ─────────────────────────────────────────
+
 const SUPA_URL = 'https://aubuwrjwkfx' + 'hpuvtlggf.supabase.co';
 const SUPA_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1YnV3cmp3' + 'a2Z4aHB1dnRsZ2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODE4NTcsImV4cCI6MjA5MTc1Nzg1N30.y0vw8T3Cpjfh4dQI8bgMh7iJ8mvERN0_MVoVg7v5zGA';
 window.supa = window.supabase.createClient(SUPA_URL, SUPA_ANON_KEY);
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-function fmtD(d)    { return d instanceof Date ? d.toISOString().split('T')[0] : d; }
-function parseD(s)  { const [y,m,dy] = s.split('-').map(Number); return new Date(y, m-1, dy); }
-function readableDate(s) { return parseD(s).toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'}); }
+function fmtD(d) { return d instanceof Date ? d.toISOString().split('T')[0] : d; }
+function parseD(s) { const [y, m, dy] = s.split('-').map(Number); return new Date(y, m - 1, dy); }
+function readableDate(s) { return parseD(s).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }); }
 
 // ── CURSOR GLOW ───────────────────────────────────────────────────────────────
 const glow = document.getElementById('cursor-glow');
 document.addEventListener('mousemove', e => {
   glow.style.left = e.clientX + 'px';
-  glow.style.top  = e.clientY + 'px';
+  glow.style.top = e.clientY + 'px';
 });
 
 // ── STARS ─────────────────────────────────────────────────────────────────────
@@ -26,10 +92,10 @@ document.addEventListener('mousemove', e => {
   for (let i = 0; i < 80; i++) {
     const s = document.createElement('div');
     s.className = 'star';
-    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*75}%;
-      --dur:${2+Math.random()*4}s;--del:${Math.random()*4}s;
-      opacity:${0.15+Math.random()*0.85};
-      width:${1+Math.random()*2}px;height:${1+Math.random()*2}px;`;
+    s.style.cssText = `left:${Math.random() * 100}%;top:${Math.random() * 75}%;
+      --dur:${2 + Math.random() * 4}s;--del:${Math.random() * 4}s;
+      opacity:${0.15 + Math.random() * 0.85};
+      width:${1 + Math.random() * 2}px;height:${1 + Math.random() * 2}px;`;
     sc.appendChild(s);
   }
 })();
@@ -46,32 +112,80 @@ const observer = new IntersectionObserver(
 document.querySelectorAll('.reveal,.reveal-left,.reveal-right').forEach(el => observer.observe(el));
 
 // ── VIRTUAL TOUR ──────────────────────────────────────────────────────────────
+const TOUR_DATA = {
+  'tb-suite': {
+    title: 'Beachfront Suite',
+    desc: 'Breathtaking 180-degree ocean views from your private balcony. Modern luxury meets the horizon.',
+    link: 'https://my.matterport.com/show/?m=example1'
+  },
+  'tb-cottage': {
+    title: 'Garden Cottage',
+    desc: 'Tucked away in lush tropical flora, offering the perfect blend of privacy and serenity.',
+    link: 'https://my.matterport.com/show/?m=example2'
+  },
+  'tb-villa': {
+    title: 'Sunset Villa',
+    desc: 'The crown jewel of Avellano\'s. Experience the most spectacular sunsets in total luxury.',
+    link: 'https://my.matterport.com/show/?m=example3'
+  },
+  'tb-beach': {
+    title: 'Beach Area',
+    desc: 'Powdery white sand and crystal clear turquoise water. Your playground awaits.',
+    link: 'https://my.matterport.com/show/?m=example4'
+  },
+  'tb-restaurant': {
+    title: 'Kainan sa Dagat',
+    desc: 'A culinary journey through Filipino heritage, served with the freshest ingredients and sea breeze.',
+    link: 'https://my.matterport.com/show/?m=example5'
+  }
+};
+
 function setTourBg(btn) {
   document.querySelectorAll('.tour-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('tourBg').className = 'tour-bg ' + btn.dataset.bg;
+  const key = btn.dataset.bg;
+  document.getElementById('tourBg').className = 'tour-bg ' + key;
+
+  // Update text content with animation
+  const title = document.getElementById('tourTitle');
+  const desc = document.getElementById('tourDesc');
+
+  title.style.opacity = 0; desc.style.opacity = 0;
+  setTimeout(() => {
+    title.innerHTML = `Explore the <em>${TOUR_DATA[key].title}</em>`;
+    desc.textContent = TOUR_DATA[key].desc;
+    title.style.opacity = 1; desc.style.opacity = 1;
+  }, 300);
+}
+
+function launchTour() {
+  const activeTab = document.querySelector('.tour-tab.active');
+  const link = TOUR_DATA[activeTab.dataset.bg].link;
+  // In a real app, this would open the 360 viewer modal or link
+  alert(`Launching 360° VR Tour for: ${TOUR_DATA[activeTab.dataset.bg].title}\n(Simulation: Connecting to ${link})`);
 }
 
 // ── RENDER ROOMS SECTION ──────────────────────────────────────────────────────
+
 async function renderRoomsSection() {
   const rooms = (await ABHC_DB.getRooms()).filter(r => r.active);
-  const grid  = document.getElementById('roomsGrid');
+  const grid = document.getElementById('roomsGrid');
   grid.innerHTML = rooms.map((r, i) => `
-    <article class="room-card reveal stagger-${i+1}">
+    <article class="room-card reveal stagger-${i + 1}">
       <div class="room-img ${r.img}">
-        <div class="room-img ${r.img ? 'has-photo' : r.img||'cottage'}">
-  ${r.img ? `<img src="${r.img}" alt="${r.name}">` : `<div class="room-img-inner">${r.badge||'🏠'}</div>`}
+        <div class="room-img ${r.img ? 'has-photo' : r.img || 'cottage'}">
+  ${r.img ? `<img src="${r.img}" alt="${r.name}">` : `<div class="room-img-inner">${r.badge || '🏠'}</div>`}
         <span class="room-badge">${r.badge}</span>
       </div>
       <div class="room-body">
         <h3 class="room-name">${r.name}</h3>
         <p class="room-capacity">👤 ${r.cap}</p>
-        <div class="room-amenities">${(r.amenities||[]).map(a => `<span class="amenity-tag">${a}</span>`).join('')}</div>
+        <div class="room-amenities">${(r.amenities || []).map(a => `<span class="amenity-tag">${a}</span>`).join('')}</div>
         <div class="room-footer">
           <div>
-            <span class="price-amount" style="font-size:1.1rem;">₱${(r.price12h||0).toLocaleString()}</span><span class="price-per">/12h</span>
+            <span class="price-amount" style="font-size:1.1rem;">₱${(r.price12h || 0).toLocaleString()}</span><span class="price-per">/12h</span>
             <span style="color:var(--sand-mid);margin:0 4px;">|</span>
-            <span class="price-amount" style="font-size:1.1rem;">₱${(r.price24h||0).toLocaleString()}</span><span class="price-per">/24h</span>
+            <span class="price-amount" style="font-size:1.1rem;">₱${(r.price24h || 0).toLocaleString()}</span><span class="price-per">/24h</span>
           </div>
           <a href="#booking" class="btn-room">Book Room</a>
         </div>
@@ -83,28 +197,28 @@ renderRoomsSection();
 
 // ── REVIEWS ───────────────────────────────────────────────────────────────────
 const REVIEWS = [
-  { stars:5, text:'Absolute magic. Woke up to ocean sounds every morning — felt like a dream we never wanted to leave.', guest:'Maria S. · Manila' },
-  { stars:5, text:'The staff remembered my coffee order on day two. That kind of warmth is rare anywhere in the world.',  guest:'James T. · Singapore' },
-  { stars:5, text:'Our anniversary here was the most romantic trip we\'ve ever taken. The sunset villa is breathtaking.', guest:'Ana & Carlo M. · Cebu' },
-  { stars:5, text:'Kids loved the island hopping, adults loved the cocktails. Everyone was happy. Perfect family getaway.', guest:'The Reyes Family · Makati' },
-  { stars:4, text:'Pristine beach, crystal water, and the freshest seafood I\'ve ever tasted. We\'re coming back every year.', guest:'Sophie L. · Paris' },
-  { stars:5, text:'From booking to checkout, everything was seamless and thoughtful. This place truly cares about guests.',  guest:'Daniel K. · London' },
+  { stars: 5, text: 'Absolute magic. Woke up to ocean sounds every morning — felt like a dream we never wanted to leave.', guest: 'Maria S. · Manila' },
+  { stars: 5, text: 'The staff remembered my coffee order on day two. That kind of warmth is rare anywhere in the world.', guest: 'James T. · Singapore' },
+  { stars: 5, text: 'Our anniversary here was the most romantic trip we\'ve ever taken. The sunset villa is breathtaking.', guest: 'Ana & Carlo M. · Cebu' },
+  { stars: 5, text: 'Kids loved the island hopping, adults loved the cocktails. Everyone was happy. Perfect family getaway.', guest: 'The Reyes Family · Makati' },
+  { stars: 4, text: 'Pristine beach, crystal water, and the freshest seafood I\'ve ever tasted. We\'re coming back every year.', guest: 'Sophie L. · Paris' },
+  { stars: 5, text: 'From booking to checkout, everything was seamless and thoughtful. This place truly cares about guests.', guest: 'Daniel K. · London' },
 ];
 (function renderReviews() {
   const track = document.getElementById('reviewsTrack');
   const doubled = [...REVIEWS, ...REVIEWS];
   track.innerHTML = doubled.map(r => `
     <div class="review-card">
-      <div class="review-stars">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</div>
+      <div class="review-stars">${'★'.repeat(r.stars)}${'☆'.repeat(5 - r.stars)}</div>
       <p class="review-text">"${r.text}"</p>
       <div class="review-guest">— ${r.guest}</div>
     </div>`).join('');
 })();
 
 // ── BOOKING STATE ─────────────────────────────────────────────────────────────
-let ROOMS   = [];
-let selIn   = null;
-let selOut  = null;
+let ROOMS = [];
+let selIn = null;
+let selOut = null;
 let cart = {};
 let off1 = 0, off2 = 1;
 
@@ -118,13 +232,13 @@ function updateCart(id, delta, maxAvail) {
 
 // ── CALENDAR ──────────────────────────────────────────────────────────────────
 async function renderCal(id, offset) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const base  = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const base = new Date(today.getFullYear(), today.getMonth() + offset, 1);
   const yr = base.getFullYear(), mo = base.getMonth();
-  const mName    = base.toLocaleString('en-US',{month:'long',year:'numeric'});
+  const mName = base.toLocaleString('en-US', { month: 'long', year: 'numeric' });
   const firstDay = new Date(yr, mo, 1).getDay();
-  const daysInMo = new Date(yr, mo+1, 0).getDate();
-  const DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const daysInMo = new Date(yr, mo + 1, 0).getDate();
+  const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
   let h = `<div class="cal-header">
     <button class="cal-nav" onclick="shiftCal('${id}',${offset},-1)">‹</button>
@@ -137,19 +251,19 @@ async function renderCal(id, offset) {
 
   for (let d = 1; d <= daysInMo; d++) {
     const date = new Date(yr, mo, d);
-    const ds   = fmtD(date);
-    const isPast  = date < today;
+    const ds = fmtD(date);
+    const isPast = date < today;
     const isToday = ds === fmtD(today);
-    const allBk   = await ABHC_DB.allBooked(date);
+    const allBk = await ABHC_DB.allBooked(date);
 
     let cls = 'cal-day';
-    if (isPast)      cls += ' past';
-    else if (allBk)  cls += ' unavailable';
-    else if (isToday)cls += ' today';
+    if (isPast) cls += ' past';
+    else if (allBk) cls += ' unavailable';
+    else if (isToday) cls += ' today';
 
     if (selIn && selOut) {
       const ci = parseD(selIn), co = parseD(selOut);
-      if (ds === selIn)      cls += ' selected-in';
+      if (ds === selIn) cls += ' selected-in';
       else if (ds === selOut) cls += ' selected-out';
       else if (date > ci && date < co) cls += ' in-range';
     } else if (selIn && ds === selIn) {
@@ -166,7 +280,7 @@ async function renderCal(id, offset) {
 
 function shiftCal(id, offset, dir) {
   if (id === 'cal1') { off1 = Math.max(0, off1 + dir); renderCal('cal1', off1); }
-  else               { off2 = Math.max(0, off2 + dir); renderCal('cal2', off2); }
+  else { off2 = Math.max(0, off2 + dir); renderCal('cal2', off2); }
 }
 
 async function dayClick(ds) {
@@ -174,7 +288,7 @@ async function dayClick(ds) {
     selIn = ds; selOut = null; selRoom = null;
   } else {
     if (ds <= selIn) { selIn = ds; selOut = null; }
-    else             { selOut = ds; }
+    else { selOut = ds; }
   }
   await renderCal('cal1', off1);
   await renderCal('cal2', off2);
@@ -183,7 +297,7 @@ async function dayClick(ds) {
 
 function updateSummary() {
   const area = document.getElementById('booking-summary-area');
-  const btn  = document.getElementById('btnToRoom');
+  const btn = document.getElementById('btnToRoom');
   if (!selIn || !selOut) {
     area.innerHTML = `<div style="text-align:center;padding:3rem 1rem;color:var(--text-muted);">
       <div style="font-size:3rem;margin-bottom:1rem;">🗓️</div>
@@ -197,7 +311,7 @@ function updateSummary() {
     <div class="booking-summary">
       <div class="summary-row"><span class="summary-label">Check-in</span><span>${readableDate(selIn)}</span></div>
       <div class="summary-row"><span class="summary-label">Check-out</span><span>${readableDate(selOut)}</span></div>
-      <div class="summary-row"><span class="summary-label">Duration</span><span>${nights} night${nights!==1?'s':''}</span></div>
+      <div class="summary-row"><span class="summary-label">Duration</span><span>${nights} night${nights !== 1 ? 's' : ''}</span></div>
     </div>`;
   btn.style.display = 'block';
 }
@@ -205,17 +319,17 @@ function updateSummary() {
 // ── BOOKING TABS ──────────────────────────────────────────────────────────────
 function switchTab(tab) {
   document.querySelectorAll('.booking-tab,.booking-tab-pane').forEach(el => el.classList.remove('active'));
-  document.getElementById('tabBtn-'+tab).classList.add('active');
-  document.getElementById('tab-'+tab).classList.add('active');
-  if (tab === 'room')    renderRoomsTab();
+  document.getElementById('tabBtn-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'room') renderRoomsTab();
   if (tab === 'confirm') renderConfirm();
 }
 
 async function renderRoomsTab() {
   ROOMS = (await ABHC_DB.getRooms()).filter(r => r.active);
   const banner = document.getElementById('dateRangeBanner');
-  const sel    = document.getElementById('roomSelector');
-  const btn    = document.getElementById('btnToConfirm');
+  const sel = document.getElementById('roomSelector');
+  const btn = document.getElementById('btnToConfirm');
 
   if (!selIn || !selOut) {
     banner.textContent = '⚠️ Please select your dates first.';
@@ -224,19 +338,46 @@ async function renderRoomsTab() {
 
   const ci = parseD(selIn), co = parseD(selOut);
   const nights = Math.round((co - ci) / 86400000);
-  banner.innerHTML = `📅 <strong>${readableDate(selIn)}</strong> → <strong>${readableDate(selOut)}</strong> &nbsp;·&nbsp; ${nights} night${nights!==1?'s':''}`;
+  banner.innerHTML = `📅 <strong>${readableDate(selIn)}</strong> → <strong>${readableDate(selOut)}</strong> &nbsp;·&nbsp; ${nights} night${nights !== 1 ? 's' : ''}`;
 
-const availResults = await Promise.all(ROOMS.map(r => ABHC_DB.getRoomAvailability(r.id, ci, co)));
-  
+  const availResults = await Promise.all(ROOMS.map(r => ABHC_DB.getRoomAvailability(r.id, ci, co)));
+  const allBookings = await ABHC_DB.getBookings();
+
   sel.innerHTML = ROOMS.map((r, i) => {
     const avail = availResults[i];
     const qtyInCart = cart[r.id] || 0;
     const total = (r.price24h * nights * qtyInCart).toLocaleString();
-    
+
     let unitSelectHtml = '';
-    // If they have selected a quantity, AND this room has specific units defined in the admin panel, show the dropdown!
+    // Find booked units for this room during this timeframe
+    const bookedUnits = new Set();
+    let d = new Date(ci);
+    const end = new Date(co);
+    while (d < end) {
+      allBookings.forEach(b => {
+        if (b.status === 'cancelled') return;
+        if ((b.room_id || b.roomId) !== r.id) return;
+        const bCi = new Date(b.check_in || b.checkIn);
+        const bCo = new Date(b.check_out || b.checkOut);
+        if (d >= bCi && d < bCo) {
+          const reqText = b.special_req || b.specialReq || '';
+          const match = reqText.match(/\[Preferred Unit:\s*(.*?)\]/);
+          if (match) bookedUnits.add(match[1].trim());
+        }
+      });
+      d.setDate(d.getDate() + 1);
+    }
+
     if (qtyInCart > 0 && r.unitIds && r.unitIds.length > 0) {
-      const options = r.unitIds.map(u => `<option value="${u}">${u}</option>`).join('');
+      // Filter out units that are currently booked
+      let availableUnits = r.unitIds.filter(u => !bookedUnits.has(u));
+
+      // Trim unassigned generic bookings so options never exceed physical availability
+      if (availableUnits.length > avail) {
+        availableUnits = availableUnits.slice(0, avail);
+      }
+
+      const options = availableUnits.map(u => `<option value="${u}">${u}</option>`).join('');
       unitSelectHtml = `
         <div style="margin-top:1.2rem;text-align:left;">
           <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:0.3rem;">Select Unit Preference (Optional)</label>
@@ -247,17 +388,17 @@ const availResults = await Promise.all(ROOMS.map(r => ABHC_DB.getRoomAvailabilit
         </div>`;
     }
 
-    return `<div class="room-option ${avail===0?'unavail-room':''}" style="cursor:default;">
-      <span class="room-opt-badge ${avail>0?'avail-badge':'unavail-badge'}">${avail>0 ? `✅ ${avail} Available` : '❌ Fully Booked'}</span>
+    return `<div class="room-option ${avail === 0 ? 'unavail-room' : ''}" style="cursor:default;">
+      <span class="room-opt-badge ${avail > 0 ? 'avail-badge' : 'unavail-badge'}">${avail > 0 ? `✅ ${avail} Available` : '❌ Fully Booked'}</span>
       ${r.img ? `<img class="room-opt-photo" src="${r.img}" alt="${r.name}">` : `<div class="room-opt-emoji">🏠</div>`}
       <div class="room-opt-name">${r.name}</div>
       <div class="room-opt-price">₱${r.price24h.toLocaleString()} / night</div>
       <div class="room-opt-cap">👤 ${r.cap}</div>
       
       <div style="display:flex;align-items:center;justify-content:center;gap:1.2rem;margin-top:1rem;">
-        <button class="btn btn-ghost btn-sm" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;line-height:0;" onclick="updateCart('${r.id}', -1, ${avail})" ${qtyInCart===0?'disabled':''}>&minus;</button>
+        <button class="btn btn-ghost btn-sm" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;line-height:0;" onclick="updateCart('${r.id}', -1, ${avail})" ${qtyInCart === 0 ? 'disabled' : ''}>&minus;</button>
         <span style="font-weight:600;font-size:1.2rem;width:24px;text-align:center;">${qtyInCart}</span>
-        <button class="btn btn-primary btn-sm" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem;line-height:0;" onclick="updateCart('${r.id}', 1, ${avail})" ${qtyInCart===avail?'disabled':''}>+</button>
+        <button class="btn btn-primary btn-sm" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem;line-height:0;" onclick="updateCart('${r.id}', 1, ${avail})" ${qtyInCart === avail ? 'disabled' : ''}>+</button>
       </div>
       
       ${qtyInCart > 0 ? `<div class="room-opt-total">Room Subtotal: ₱${total}</div>` : ''}
@@ -265,7 +406,7 @@ const availResults = await Promise.all(ROOMS.map(r => ABHC_DB.getRoomAvailabilit
     </div>`;
   }).join('');
 
-  const totalItems = Object.values(cart).reduce((a,b)=>a+b,0);
+  const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
   btn.style.display = totalItems > 0 ? 'block' : 'none';
 }
 
@@ -277,20 +418,20 @@ function pickRoom(id) {
 
 function renderConfirm() {
   const div = document.getElementById('confirmSummary');
-  
+
   // Calculate total items in cart to check if they selected anything
-  const totalItems = Object.values(cart).reduce((a,b)=>a+b,0);
-  
+  const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
+
   if (!selIn || !selOut || totalItems === 0) {
     div.innerHTML = '<p style="color:var(--text-muted);">Please complete the previous steps first.</p>';
     return;
   }
-  
+
   const nights = Math.round((parseD(selOut) - parseD(selIn)) / 86400000);
-  
+
   let totalSub = 0;
   let roomBreakdownHtml = '';
-  
+
   // Loop through the cart and build a line item for each room they selected
   Object.keys(cart).forEach(id => {
     if (cart[id] > 0) {
@@ -302,7 +443,7 @@ function renderConfirm() {
   });
 
   // Replace the old tax math with this:
-  const tax = 0;
+  const tax = totalSub * 0.12;
   const grandTotal = totalSub;
 
   div.innerHTML = `
@@ -313,6 +454,7 @@ function renderConfirm() {
     <hr style="border:none;border-top:1px dashed var(--sand-mid);margin:0.5rem 0;">
     ${roomBreakdownHtml}
     <hr style="border:none;border-top:1px dashed var(--sand-mid);margin:0.5rem 0;">
+    <div class="summary-row"><span class="summary-label">Tax (12% VAT Included)</span><span>₱${tax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
     <div class="summary-row"><span class="summary-label">Total (Tax Inclusive)</span><span style="font-size:1.1rem;color:var(--aqua-deep);font-weight:600;">₱${grandTotal.toLocaleString()}</span></div>`;
 }
 
@@ -326,16 +468,16 @@ async function checkFlagged() {
 
   const flagged = await ABHC_DB.isGuestFlagged(em, fn, ln);
   const warn = document.getElementById('flaggedWarning');
-  const msg  = document.getElementById('flaggedMsg');
+  const msg = document.getElementById('flaggedMsg');
 
   if (flagged) {
     warn.classList.add('show');
-    msg.textContent = `This guest has been flagged: ${flagged.reason||'Property damage reported'}. Admin has been notified.`;
+    msg.textContent = `This guest has been flagged: ${flagged.reason || 'Property damage reported'}. Admin has been notified.`;
     if (!flagAlertShown) {
       flagAlertShown = true;
       setTimeout(() => {
         document.getElementById('flagModalMsg').textContent =
-          `Guest "${fn} ${ln}" (${em}) appears in the flagged guest list. Reason: ${flagged.reason||'Property damage reported'}. Please review before confirming.`;
+          `Guest "${fn} ${ln}" (${em}) appears in the flagged guest list. Reason: ${flagged.reason || 'Property damage reported'}. Please review before confirming.`;
         document.getElementById('flagModal').classList.add('open');
       }, 600);
     }
@@ -350,21 +492,21 @@ function closeFlagModal() {
 
 // ── SUBMIT RESERVATION ────────────────────────────────────────────────────────
 async function submitReservation() {
-  const fn  = document.getElementById('guestFname').value.trim();
-  const ln  = document.getElementById('guestLname').value.trim();
-  const em  = document.getElementById('guestEmail').value.trim();
-  const ph  = document.getElementById('guestPhone').value.trim();
+  const fn = document.getElementById('guestFname').value.trim();
+  const ln = document.getElementById('guestLname').value.trim();
+  const em = document.getElementById('guestEmail').value.trim();
+  const ph = document.getElementById('guestPhone').value.trim();
   const req = document.getElementById('guestReq').value.trim();
 
   if (!fn || !ln || !em) { alert('Please fill in your name and email to proceed.'); return; }
-  
+
   // Make sure they have selected at least one room
-  const totalItems = Object.values(cart).reduce((a,b)=>a+b,0);
+  const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
   if (!selIn || !selOut || totalItems === 0) { alert('Please complete all steps and select at least one room.'); return; }
 
   const nights = Math.round((parseD(selOut) - parseD(selIn)) / 86400000);
-  const ref    = 'ABHC-' + Date.now().toString(36).toUpperCase().slice(-6);
-  
+  const ref = 'ABHC-' + Date.now().toString(36).toUpperCase().slice(-6);
+
   const bookingsArray = [];
   let grandTotal = 0;
   let roomNamesHtml = '';
@@ -374,16 +516,16 @@ async function submitReservation() {
     if (cart[id] > 0) {
       const r = ROOMS.find(room => room.id === id);
       const sub = r.price24h * nights * cart[id];
-      const tax = 0; // Tax inclusive
+      const tax = Math.round(sub - sub / 1.12); // Extract VAT from tax-inclusive price
       const total = sub;
-      
+
       grandTotal += total;
       roomNamesHtml += `<div>${cart[id]}x ${r.name}</div>`;
 
       // Grab their unit preference if they selected one
       const prefDropdown = document.getElementById(`prefUnit_${id}`);
       const preferredUnit = prefDropdown ? prefDropdown.value : '';
-      
+
       // Attach the preference to their special requests so it shows up on your admin panel!
       let finalReq = req;
       if (preferredUnit) {
@@ -392,8 +534,8 @@ async function submitReservation() {
 
       bookingsArray.push({
         ref, roomId: r.id, roomName: r.name, roomQuantity: cart[id],
-        guestName: fn+' '+ln, guestFname: fn, guestLname: ln,
-        guestEmail: em, guestPhone: ph, checkIn: selIn, checkOut: selOut, 
+        guestName: fn + ' ' + ln, guestFname: fn, guestLname: ln,
+        guestEmail: em, guestPhone: ph, checkIn: selIn, checkOut: selOut,
         nights, subtotal: sub, tax, total,
         specialReq: finalReq, // Saved here!
         notes: '', repairCost: 0, status: 'confirmed', flagged: false,
@@ -420,13 +562,13 @@ async function submitReservation() {
     <div class="modal-detail-row"><span class="modal-detail-label">Check-out</span><span class="modal-detail-val">${readableDate(selOut)}</span></div>
     <div class="modal-detail-row"><span class="modal-detail-label">Nights</span><span class="modal-detail-val">${nights}</span></div>
     <div class="modal-detail-row"><span class="modal-detail-label">Total (incl. tax)</span><span class="modal-detail-val" style="color:var(--aqua-deep);font-weight:600;">₱${grandTotal.toLocaleString()}</span></div>`;
-  
+
   document.getElementById('bookingModal').classList.add('open');
 
   // Reset state (Empty the cart!)
   selIn = null; selOut = null; cart = {}; flagAlertShown = false;
   renderCal('cal1', off1); renderCal('cal2', off2); updateSummary();
-  ['guestFname','guestLname','guestEmail','guestPhone','guestReq'].forEach(id => document.getElementById(id).value = '');
+  ['guestFname', 'guestLname', 'guestEmail', 'guestPhone', 'guestReq'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('flaggedWarning').classList.remove('show');
 }
 
@@ -438,7 +580,7 @@ async function loadApprovedFeed() {
   try {
     const res = await fetch('/api/guest-feed?status=approved');
     const posts = await res.json();
-    
+
     container.innerHTML = posts.map(p => `
       <div class="room-card" style="border-radius:12px;overflow:hidden;background:white;">
         <img src="${p.image_url}" style="width:100%;height:220px;object-fit:cover;display:block;">
@@ -486,10 +628,10 @@ async function submitFeedPost() {
         body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error('Upload failed');
-      
+
       // The new success message!
       alert("Your post has been submitted and will be reviewed for approval. Thank you for sharing your story!");
-      
+
       // Clear the form
       document.getElementById('feedName').value = '';
       document.getElementById('feedRef').value = '';
@@ -521,6 +663,37 @@ let kbData = [];
 let botMode = !chatCaseId;
 let guestRealtimeChannel = null;
 
+// --- NOTIFICATION SOUND ---
+let audioCtx = null;
+let lastSoundTime = 0;
+function playNotificationSound() {
+  const now = Date.now();
+  if (now - lastSoundTime < 1000) return; // Prevent double ding
+  lastSoundTime = now;
+
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+    osc.frequency.exponentialRampToValueAtTime(1046.50, audioCtx.currentTime + 0.1); // C6
+
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.5);
+  } catch (e) { console.error("Audio API not supported or blocked", e); }
+}
+
 // Initialize session on page load if they refreshed
 document.addEventListener('DOMContentLoaded', async () => {
   if (chatCaseId) {
@@ -534,6 +707,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const body = document.getElementById('guestChatBody');
       body.innerHTML = '';
       msgs.forEach(m => {
+        if (m.sender_type === 'system' && m.message.includes('ownership transferred')) return;
         const type = m.sender_type === 'guest' ? 'guest' : (m.sender_type === 'system' ? 'sys' : 'bot');
         appendMsg(type, m.message, m.created_at);
       });
@@ -570,13 +744,14 @@ async function sendGuestMsg() {
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
-  
+
   // OPTIMISTIC UI: Show message instantly!
   appendMsg('guest', text);
 
   if (botMode) {
     const match = kbData.find(k => k.keywords.split(',').some(kw => text.toLowerCase().includes(kw.trim())));
     setTimeout(() => {
+      playNotificationSound();
       if (match) {
         appendMsg('bot', match.answer);
       } else {
@@ -612,6 +787,9 @@ async function submitPreChat() {
   const name = document.getElementById('pcName').value.trim();
   const email = document.getElementById('pcEmail').value.trim();
   const concern = document.getElementById('pcConcern').value.trim();
+  const phone = document.getElementById('pcPhone').value.trim();
+  const ref = document.getElementById('pcRef').value.trim();
+
   if (!name || !email) return alert("Name and Email are required.");
 
   document.getElementById('prechatForm').style.display = 'none';
@@ -620,16 +798,25 @@ async function submitPreChat() {
   const newId = 'CS-' + Date.now().toString(36).toUpperCase().slice(-5);
   await ABHC_DB.createSupportCase({
     case_id: newId, guest_name: name, guest_email: email,
-    guest_phone: document.getElementById('pcPhone').value.trim(),
-    ref_no: document.getElementById('pcRef').value.trim(),
+    guest_phone: phone,
+    ref_no: ref,
     concern: concern
   });
+
+  if (concern) {
+    await ABHC_DB.sendSupportMessage({
+      case_id: newId,
+      sender_type: 'guest',
+      sender_name: name,
+      message: concern
+    });
+  }
 
   chatCaseId = newId;
   botMode = false;
   localStorage.setItem('abhc_chat_case_id', newId); // Protect against refreshes!
   document.getElementById('guestEndChatBtn').style.display = 'inline-block';
-  
+
   appendMsg('sys', `Case ${newId} created. Please wait for an agent...`);
   setupGuestRealtime();
 }
@@ -639,22 +826,71 @@ function setupGuestRealtime() {
     guestRealtimeChannel = window.supa.channel(`guest-chat-${chatCaseId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages', filter: `case_id=eq.${chatCaseId}` }, (payload) => {
         if (payload.new.sender_type !== 'guest') {
+          // Hide internal reassignment messages from the guest
+          if (payload.new.sender_type === 'system' && payload.new.message.includes('ownership transferred')) return;
+
           const typeMap = { 'system': 'sys', 'bot': 'bot', 'staff': 'bot' };
           appendMsg(typeMap[payload.new.sender_type], payload.new.message, payload.new.created_at);
+
+          playNotificationSound();
+
+          // Lock the guest out of replying if the admin closes the chat
+          if (payload.new.sender_type === 'system' && (payload.new.message.includes('RESOLVED') || payload.new.message.includes('ABANDONED') || payload.new.message.includes('CLOSED'))) {
+            document.getElementById('guestChatInputArea').innerHTML = `
+              <div style="text-align:center;width:100%;font-size:0.85rem;padding:0.5rem 0;display:flex;flex-direction:column;align-items:center;gap:0.5rem;">
+                <span style="color:var(--text-muted);">This chat has been closed.</span>
+                <button class="btn btn-primary btn-sm" onclick="startNewGuestChat()">Start New Chat</button>
+              </div>`;
+            document.getElementById('guestEndChatBtn').style.display = 'none';
+            localStorage.removeItem('abhc_chat_case_id');
+            chatCaseId = null;
+            botMode = true;
+            if (guestRealtimeChannel) { window.supa.removeChannel(guestRealtimeChannel); guestRealtimeChannel = null; }
+          }
         }
       }).subscribe();
   }
 }
 
+function startNewGuestChat() {
+  endGuestChat(true); // Silently close the UI and wipe variables
+  toggleGuestChat(); // Re-open the widget immediately as a fresh bot chat
+}
+
 async function endGuestChat(silent = false) {
   if (chatCaseId && !botMode && !silent) {
-    await ABHC_DB.updateSupportCase(chatCaseId, { status: 'abandoned', closed_at: new Date().toISOString() });
-    await ABHC_DB.sendSupportMessage({ case_id: chatCaseId, sender_type: 'system', sender_name: 'System', message: 'Guest has ended the conversation and left the chat.' });
+    try {
+      document.getElementById('guestChatInputArea').innerHTML = `<div style="text-align:center;width:100%;font-size:0.8rem;color:var(--text-muted);">Closing chat...</div>`;
+      await ABHC_DB.updateSupportCase(chatCaseId, { status: 'closed', closed_at: new Date().toISOString() });
+      await ABHC_DB.sendSupportMessage({ case_id: chatCaseId, sender_type: 'system', sender_name: 'System', message: 'Guest marked the conversation as resolved and ended the chat.' });
+    } catch (err) {
+      console.error("Failed to update case status on end chat:", err);
+    }
+
+    // Lock the UI instead of wiping the chat body
+    document.getElementById('guestChatInputArea').innerHTML = `
+      <div style="text-align:center;width:100%;font-size:0.85rem;padding:0.5rem 0;display:flex;flex-direction:column;align-items:center;gap:0.5rem;">
+        <span style="color:var(--text-muted);">This chat has been closed.</span>
+        <button class="btn btn-primary btn-sm" onclick="startNewGuestChat()">Start New Chat</button>
+      </div>`;
+    document.getElementById('guestEndChatBtn').style.display = 'none';
+    localStorage.removeItem('abhc_chat_case_id');
+    chatCaseId = null;
+    botMode = true;
+    if (guestRealtimeChannel) { window.supa.removeChannel(guestRealtimeChannel); guestRealtimeChannel = null; }
+
+    return; // Keep the window open and history visible
   }
+
+  // SILENT CLEANUP (used when page reloads or "Start New Chat" is clicked)
   localStorage.removeItem('abhc_chat_case_id');
   chatCaseId = null; botMode = true;
   document.getElementById('guestChatBody').innerHTML = '';
   document.getElementById('guestEndChatBtn').style.display = 'none';
+  document.getElementById('guestChatInputArea').innerHTML = `
+    <input type="text" id="guestChatInput" class="chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendGuestMsg()">
+    <button class="chat-send" onclick="sendGuestMsg()">➤</button>
+  `;
   if (guestRealtimeChannel) { window.supa.removeChannel(guestRealtimeChannel); guestRealtimeChannel = null; }
   document.getElementById('guestChatWindow').classList.remove('open');
 }

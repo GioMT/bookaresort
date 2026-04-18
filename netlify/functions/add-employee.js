@@ -23,6 +23,26 @@ exports.handler = async (event) => {
 
     const { email, password, firstName, lastName, phone } = JSON.parse(event.body);
 
+    // 1. Get the custom business tag
+    const { data: contentData } = await supabase.from('site_content').select('value').eq('key', 'business_tag').single();
+    const tag = (contentData && contentData.value) ? contentData.value : 'VLKN';
+
+    // 2. Find the highest existing ID with this tag
+    const { data: existingStaff } = await supabase.from('staff_profiles')
+      .select('emp_id')
+      .ilike('emp_id', `${tag}%`)
+      .order('emp_id', { ascending: false })
+      .limit(1);
+
+    let nextNum = 1;
+    if (existingStaff && existingStaff.length > 0 && existingStaff[0].emp_id) {
+      const highestStr = existingStaff[0].emp_id.replace(tag, '');
+      const highestNum = parseInt(highestStr, 10);
+      if (!isNaN(highestNum)) nextNum = highestNum + 1;
+    }
+    const newEmpId = `${tag}${String(nextNum).padStart(4, '0')}`;
+
+    // 3. Create Auth User
     const { data: newAuthUser, error: createErr } = await supabase.auth.admin.createUser({
       email: email,
       password: password,
@@ -30,8 +50,10 @@ exports.handler = async (event) => {
     });
     if (createErr) throw createErr;
 
+    // 4. Create Staff Profile with new emp_id
     const { error: profileErr } = await supabase.from('staff_profiles').insert([{
       id: newAuthUser.user.id,
+      emp_id: newEmpId,
       first_name: firstName,
       last_name: lastName,
       phone: phone || '',
@@ -39,7 +61,7 @@ exports.handler = async (event) => {
     }]);
     if (profileErr) throw profileErr;
 
-    return { statusCode: 200, body: JSON.stringify({ message: "Employee account created successfully!" }) };
+    return { statusCode: 200, body: JSON.stringify({ message: `Employee account created! ID: ${newEmpId}`, emp_id: newEmpId }) };
   } catch (err) {
     return { statusCode: 400, body: JSON.stringify({ error: err.message }) };
   }

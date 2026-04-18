@@ -99,10 +99,9 @@ exports.handler = async (event) => {
     }
 
     if (method === 'DELETE' && id) {
-      // Soft delete — just deactivate
       const { error } = await supabase
         .from('rooms')
-        .update({ active: false })
+        .delete()
         .eq('id', id);
 
       if (error) throw error;

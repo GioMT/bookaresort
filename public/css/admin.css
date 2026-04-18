@@ -201,3 +201,66 @@ select.search-input { cursor: pointer; }
 .msg-sys { background: var(--sand); color: var(--text-muted); align-self: center; font-size: 0.75rem; text-align: center; border-radius: 50px; }
 .chat-input-area { padding: 1rem; background: white; border-top: 1px solid var(--sand-mid); display: flex; gap: 0.5rem; }
 .chat-input { flex: 1; padding: 0.6rem; border: 1px solid var(--sand-mid); border-radius: 8px; outline: none; font-family: inherit; font-size: 0.85rem; }
+
+@keyframes caseSwitchFadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.case-animate {
+  animation: caseSwitchFadeIn 0.25s ease-out forwards;
+}
+
+/* ── SITE EDITOR VISUAL PREVIEW ─────────────────────────────── */
+.se-preview-wrap {
+  display: flex; flex-direction: column; gap: 2rem;
+}
+.se-section {
+  position: relative;
+}
+.se-section-label {
+  display: inline-block;
+  background: var(--aqua-deep);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px 6px 0 0;
+  margin-bottom: -1px;
+  position: relative;
+  z-index: 2;
+}
+.se-editable {
+  outline: 1.5px dashed transparent;
+  border-radius: 4px;
+  transition: outline-color 0.2s, background 0.2s, box-shadow 0.2s;
+  cursor: text;
+  position: relative;
+  min-width: 20px;
+  min-height: 1em;
+}
+.se-editable:hover {
+  outline-color: var(--aqua);
+  background: rgba(78, 198, 192, 0.06);
+}
+.se-editable:focus {
+  outline-color: var(--sunset);
+  outline-style: solid;
+  outline-width: 2px;
+  background: rgba(255, 208, 181, 0.08);
+  box-shadow: 0 0 0 4px rgba(255, 208, 181, 0.15);
+}
+.se-editable::after {
+  content: '✏️';
+  position: absolute;
+  top: -6px; right: -6px;
+  font-size: 0.6rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+.se-editable:hover::after {
+  opacity: 1;
+}

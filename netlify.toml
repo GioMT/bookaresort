@@ -65,3 +65,13 @@
   from = "/api/support"
   to = "/.netlify/functions/support"
   status = 200
+
+[[redirects]]
+  from = "/api/site-content"
+  to = "/.netlify/functions/site-content"
+  status = 200
+
+[[redirects]]
+  from = "/api/site-content/*"
+  to = "/.netlify/functions/site-content"
+  status = 200

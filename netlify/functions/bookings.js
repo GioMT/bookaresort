@@ -116,11 +116,11 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify(data) };
     }
 
-    // ── DELETE cancel booking ─────────────────────────────────────────────────
+    // ── DELETE hard delete booking ────────────────────────────────────────────
     if (method === 'DELETE' && id) {
       const { error } = await supabase
         .from('bookings')
-        .update({ status: 'cancelled' })   // soft delete — keep for revenue history
+        .delete()
         .eq('id', id);
 
       if (error) throw error;

@@ -3,7 +3,7 @@
    Avellano's Beach Hut Cottage
    ============================================================ */
 
-:root {
+:root, [data-theme="ocean_sunset"] {
   --white: #FFFFFF;
   --aqua-light: #E0F7F5;
   --aqua: #4EC6C0;
@@ -26,6 +26,282 @@
   --font-serif: 'Cormorant Garamond', Georgia, serif;
   --font-sans: 'DM Sans', sans-serif;
   --sidebar-w: 240px;
+}
+
+[data-theme="boho_minimalist"] {
+  --white: #FFFFFF;
+  --aqua-light: #E8EBE8;
+  --aqua: #8B9D8B;
+  --aqua-dark: #6B7E6B;
+  --aqua-deep: #4A5E4A;
+  --sunset-light: #F4EAE6;
+  --sunset: #C28B75;
+  --sunset-dark: #A36B56;
+  --sand: #F0ECE1;
+  --sand-mid: #E3DDCF;
+  --sand-dark: #C28B75;
+  --text-dark: #3A3A35;
+  --text-mid: #6D6D65;
+  --text-muted: #9A9A90;
+  --bg: #F9F6F0;
+  --font-serif: 'Cormorant Garamond', serif;
+  --font-sans: 'Montserrat', sans-serif;
+}
+
+[data-theme="royal_gold"] {
+  --white: #1A1A1A;
+  --aqua-light: rgba(212, 175, 55, 0.1);
+  --aqua: #D4AF37;
+  --aqua-dark: #B5952F;
+  --aqua-deep: #917726;
+  --sunset-light: #F5F5F0;
+  --sunset: #E5E4E2;
+  --sunset-dark: #C0C0C0;
+  --sand: #242424;
+  --sand-mid: #333333;
+  --sand-dark: #D4AF37;
+  --text-dark: #FFFFFF;
+  --text-mid: #CCCCCC;
+  --text-muted: #888888;
+  --bg: #121212;
+  --font-serif: 'Cinzel', serif;
+  --font-sans: 'Montserrat', sans-serif;
+}
+
+[data-theme="glass_ocean"] {
+  --white: rgba(255, 255, 255, 0.85);
+  --aqua-light: #CFFAFE;
+  --aqua: #06B6D4;
+  --aqua-dark: #0891B2;
+  --aqua-deep: #164E63;
+  --sunset-light: #EDE9FE;
+  --sunset: #8B5CF6;
+  --sunset-dark: #7C3AED;
+  --sand: #E0F0FE;
+  --sand-mid: #BCE0FD;
+  --sand-dark: #3B82F6;
+  --text-dark: #0F172A;
+  --text-mid: #334155;
+  --text-muted: #64748B;
+  --bg: #F0F8FF;
+  --font-serif: 'Plus Jakarta Sans', sans-serif;
+  --font-sans: 'Inter', sans-serif;
+}
+
+[data-theme="mediterranean_azure"] {
+  --white: #F8FAFC;
+  --aqua-light: #E0F2FE;
+  --aqua: #0284C7;
+  --aqua-dark: #0369A1;
+  --aqua-deep: #075985;
+  --sunset-light: #FEF3C7;
+  --sunset: #F59E0B;
+  --sunset-dark: #D97706;
+  --sand: #F1F5F9;
+  --sand-mid: #E2E8F0;
+  --sand-dark: #0EA5E9;
+  --text-dark: #0F172A;
+  --text-mid: #334155;
+  --text-muted: #64748B;
+  --bg: #FFFFFF;
+  --font-serif: 'Montserrat', sans-serif;
+  --font-sans: 'Open Sans', sans-serif;
+}
+
+[data-theme="tropical_canopy"] {
+  --white: #FFFFFF;
+  --aqua-light: #E0EBE0;
+  --aqua: #1B5E20;
+  --aqua-dark: #114215;
+  --aqua-deep: #0A2B0D;
+  --sunset-light: #FFF0E0;
+  --sunset: #FF8C00;
+  --sunset-dark: #E65100;
+  --sand: #E8F0E8;
+  --sand-mid: #D1E0D1;
+  --sand-dark: #FF8C00;
+  --text-dark: #0F1A0F;
+  --text-mid: #2E4D2E;
+  --text-muted: #688A68;
+  --bg: #F5FAF5;
+  --font-serif: 'Lora', serif;
+  --font-sans: 'Nunito', sans-serif;
+}
+
+[data-theme="desert_oasis"] {
+  --white: #FFFFFF;
+  --aqua-light: #EFF0EB;
+  --aqua: #8F9779;
+  --aqua-dark: #6D755C;
+  --aqua-deep: #4D543F;
+  --sunset-light: #F9EFEF;
+  --sunset: #DDA7A5;
+  --sunset-dark: #C58582;
+  --sand: #F4EDE4;
+  --sand-mid: #E6D8C8;
+  --sand-dark: #DDA7A5;
+  --text-dark: #362E25;
+  --text-mid: #6D5D4B;
+  --text-muted: #A19385;
+  --bg: #FCF9F5;
+  --font-serif: 'DM Serif Display', serif;
+  --font-sans: 'Karla', sans-serif;
+}
+
+[data-theme="coastal_pearl"] {
+  --white: #FFFFFF;
+  --aqua-light: #E0E7FF;
+  --aqua: #1E3A8A;
+  --aqua-dark: #172554;
+  --aqua-deep: #0B1120;
+  --sunset-light: #CCFBF1;
+  --sunset: #5EEAD4;
+  --sunset-dark: #14B8A6;
+  --sand: #F0F1F5;
+  --sand-mid: #E0E2E8;
+  --sand-dark: #1E3A8A;
+  --text-dark: #0F172A;
+  --text-mid: #334155;
+  --text-muted: #94A3B8;
+  --bg: #FAFAFC;
+  --font-serif: 'Bodoni Moda', serif;
+  --font-sans: 'Work Sans', sans-serif;
+}
+
+[data-theme="volcanic_ash"] {
+  --white: #27272A;
+  --aqua-light: #E4E4E7; /* Light slate for badges/highlights */
+  --aqua: #A1A1AA;
+  --aqua-dark: #D4D4D8; /* Lighter slate so italic words pop on dark backgrounds */
+  --aqua-deep: #3F3F46;
+  --sunset-light: #FCA5A5;
+  --sunset: #DC2626;
+  --sunset-dark: #991B1B;
+  --sand: #3F3F46;
+  --sand-mid: #52525B;
+  --sand-dark: #DC2626;
+  --text-dark: #F4F4F5;
+  --text-mid: #A1A1AA;
+  --text-muted: #71717A;
+  --bg: #18181B;
+  --font-serif: 'Syne', sans-serif;
+  --font-sans: 'Inter', sans-serif;
+}
+
+/* Volcanic Ash Overrides for Hardcoded White Backgrounds in guest.css */
+[data-theme="volcanic_ash"] .booking-section .section-title,
+[data-theme="volcanic_ash"] .reviews-section .section-title,
+[data-theme="volcanic_ash"] .room-card .room-opt-name,
+[data-theme="volcanic_ash"] .dining-card .dining-name,
+[data-theme="volcanic_ash"] .cal-day,
+[data-theme="volcanic_ash"] .cal-title,
+[data-theme="volcanic_ash"] .summary-row,
+[data-theme="volcanic_ash"] .tour-inner .section-title {
+  color: #18181B !important;
+}
+
+[data-theme="volcanic_ash"] .booking-section .section-sub,
+[data-theme="volcanic_ash"] .reviews-section .section-sub,
+[data-theme="volcanic_ash"] .room-card .room-opt-cap,
+[data-theme="volcanic_ash"] .dining-card .dining-desc,
+[data-theme="volcanic_ash"] .cal-day.empty,
+[data-theme="volcanic_ash"] .cal-day.past,
+[data-theme="volcanic_ash"] .tour-inner .section-sub,
+[data-theme="volcanic_ash"] .tour-inner .section-label,
+[data-theme="volcanic_ash"] .summary-label {
+  color: #52525B !important;
+}
+
+
+[data-theme="volcanic_ash"] .tour-tab {
+  color: #18181B; border-color: #A1A1AA;
+}
+[data-theme="volcanic_ash"] .tour-tab.active,
+[data-theme="volcanic_ash"] .tour-tab:hover {
+  background: #3F3F46; color: white; border-color: #3F3F46;
+}
+[data-theme="volcanic_ash"] .booking-tab.active {
+  color: #18181B !important; background: white !important;
+}
+[data-theme="volcanic_ash"] .tour-play {
+  color: #18181B; border-color: #18181B; background: rgba(0,0,0,0.05);
+}
+[data-theme="volcanic_ash"] .tour-label {
+  color: #18181B;
+}
+[data-theme="volcanic_ash"] .cal-day.unavailable {
+  color: #A1A1AA !important; background: repeating-linear-gradient(45deg, #F4F4F5, #F4F4F5 3px, #E4E4E7 3px, #E4E4E7 8px) !important;
+}
+[data-theme="volcanic_ash"] .review-text {
+  color: #18181B !important;
+}
+
+/* Royal Gold Overrides for Hardcoded White Backgrounds in guest.css */
+[data-theme="royal_gold"] .booking-section .section-title,
+[data-theme="royal_gold"] .reviews-section .section-title,
+[data-theme="royal_gold"] .room-card .room-opt-name,
+[data-theme="royal_gold"] .dining-card .dining-name,
+[data-theme="royal_gold"] .cal-day,
+[data-theme="royal_gold"] .cal-title,
+[data-theme="royal_gold"] .summary-row,
+[data-theme="royal_gold"] .tour-inner .section-title {
+  color: #121212 !important;
+}
+
+[data-theme="royal_gold"] .booking-section .section-sub,
+[data-theme="royal_gold"] .reviews-section .section-sub,
+[data-theme="royal_gold"] .room-card .room-opt-cap,
+[data-theme="royal_gold"] .dining-card .dining-desc,
+[data-theme="royal_gold"] .cal-day.empty,
+[data-theme="royal_gold"] .cal-day.past,
+[data-theme="royal_gold"] .tour-inner .section-sub,
+[data-theme="royal_gold"] .tour-inner .section-label,
+[data-theme="royal_gold"] .summary-label {
+  color: #333333 !important;
+}
+
+
+[data-theme="royal_gold"] .tour-tab {
+  color: #121212; border-color: #888888;
+}
+[data-theme="royal_gold"] .tour-tab.active,
+[data-theme="royal_gold"] .tour-tab:hover {
+  background: #242424; color: white; border-color: #242424;
+}
+[data-theme="royal_gold"] .booking-tab.active {
+  color: #121212 !important; background: white !important;
+}
+[data-theme="royal_gold"] .tour-play {
+  color: #121212; border-color: #121212; background: rgba(0,0,0,0.05);
+}
+[data-theme="royal_gold"] .tour-label {
+  color: #121212;
+}
+[data-theme="royal_gold"] .cal-day.unavailable {
+  color: #888888 !important; background: repeating-linear-gradient(45deg, #FFFFFF, #FFFFFF 3px, #F0F0F0 3px, #F0F0F0 8px) !important;
+}
+[data-theme="royal_gold"] .review-text {
+  color: #121212 !important;
+}
+
+[data-theme="coral_flamingo"] {
+  --white: #FFFFFF;
+  --aqua-light: #FCE4EC;
+  --aqua: #DA627D;
+  --aqua-dark: #C24A6A;
+  --aqua-deep: #AD3858;
+  --sunset-light: #D1FAE5;
+  --sunset: #34D399;
+  --sunset-dark: #10B981;
+  --sand: #FEE2E2;
+  --sand-mid: #FECACA;
+  --sand-dark: #DA627D;
+  --text-dark: #4C0519;
+  --text-mid: #881337;
+  --text-muted: #BE123C;
+  --bg: #FDFAFA;
+  --font-serif: 'Bebas Neue', sans-serif;
+  --font-sans: 'Rubik', sans-serif;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -104,7 +380,7 @@ body {
   font-family: var(--font-sans);
   font-size: 0.88rem;
   color: var(--text-dark);
-  background: white;
+  background: var(--white);
   transition: all 0.2s;
   outline: none;
 }
