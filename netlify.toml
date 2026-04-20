@@ -2,6 +2,13 @@
   publish = "public"
   functions = "netlify/functions"
 
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type"
+
 # Redirect all API calls from /api/* → netlify functions
 [[redirects]]
   from = "/api/bookings"

@@ -2108,9 +2108,15 @@ async function initSupport() {
               delete window.caseFollowupTimeouts[m.case_id];
             }
           }
-          // If m.sender_type === 'system', do NOTHING! Let the staff's clock keep ticking!
         }
       }).subscribe();
+  }
+
+  // Polling fallback to guarantee delivery if realtime publication is disabled
+  if (!window.adminSupportPoll) {
+    window.adminSupportPoll = setInterval(() => {
+      refreshSupportUI();
+    }, 3000);
   }
 
 }
@@ -2161,9 +2167,15 @@ async function loadAdminCase(id, switchTab = true) {
     if (ni) draftNote = ni.value;
   }
 
+  let oldStatus = currentAdminCase ? currentAdminCase.status : '';
+  let oldOwner = currentAdminCase ? currentAdminCase.owner : '';
+  
   const cases = await ABHC_DB.getSupportCases();
   currentAdminCase = cases.find(c => c.case_id === id);
   if (!currentAdminCase) return;
+
+  let caseChanged = (oldStatus !== currentAdminCase.status) || (oldOwner !== currentAdminCase.owner);
+  let shouldRenderLayout = switchTab || caseChanged;
 
   document.getElementById('workspaceEmpty').style.display = 'none';
   const wc = document.getElementById('workspaceContent');
@@ -2178,47 +2190,49 @@ async function loadAdminCase(id, switchTab = true) {
   const dForm = (d) => d ? new Date(d).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
   const staffOptions = allStaffList.map(s => `<option value="${s}">`).join('');
 
-  // 1. FORMATTED CASE INFO TAB
-  document.getElementById('csTab-info').innerHTML = `
-    <div style="margin-bottom:1.5rem; background:var(--bg); padding:1.2rem; border-radius:12px; border:1px solid var(--sand-mid);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--sand-mid); padding-bottom:0.8rem;">
-        <span style="color:var(--text-muted); font-size:0.85rem; font-weight:600;">Case Owner</span>
-        <div id="ownerDisplay" style="font-weight:600; color:var(--aqua-deep); cursor:pointer; text-decoration:underline;" onclick="document.getElementById('ownerEdit').style.display='flex'; this.style.display='none';">
-          ${currentAdminCase.owner || 'Unassigned (Click to assign)'}
+  if (shouldRenderLayout) {
+    // 1. FORMATTED CASE INFO TAB
+    document.getElementById('csTab-info').innerHTML = `
+      <div style="margin-bottom:1.5rem; background:var(--bg); padding:1.2rem; border-radius:12px; border:1px solid var(--sand-mid);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--sand-mid); padding-bottom:0.8rem;">
+          <span style="color:var(--text-muted); font-size:0.85rem; font-weight:600;">Case Owner</span>
+          <div id="ownerDisplay" style="font-weight:600; color:var(--aqua-deep); cursor:pointer; text-decoration:underline;" onclick="document.getElementById('ownerEdit').style.display='flex'; this.style.display='none';">
+            ${currentAdminCase.owner || 'Unassigned (Click to assign)'}
+          </div>
+          <div id="ownerEdit" style="display:none; gap:0.5rem; align-items:center;">
+            <input type="text" id="newOwnerInput" list="staffList" class="chat-input" style="padding:0.4rem; font-size:0.8rem; width:160px;" value="${currentAdminCase.owner || ''}" placeholder="Type staff name...">
+            <datalist id="staffList">${staffOptions}</datalist>
+            <button class="btn btn-primary btn-xs" onclick="saveCaseOwner()">Save</button>
+            <button class="btn btn-ghost btn-xs" onclick="document.getElementById('ownerDisplay').style.display='block'; document.getElementById('ownerEdit').style.display='none';">Cancel</button>
+          </div>
         </div>
-        <div id="ownerEdit" style="display:none; gap:0.5rem; align-items:center;">
-          <input type="text" id="newOwnerInput" list="staffList" class="chat-input" style="padding:0.4rem; font-size:0.8rem; width:160px;" value="${currentAdminCase.owner || ''}" placeholder="Type staff name...">
-          <datalist id="staffList">${staffOptions}</datalist>
-          <button class="btn btn-primary btn-xs" onclick="saveCaseOwner()">Save</button>
-          <button class="btn btn-ghost btn-xs" onclick="document.getElementById('ownerDisplay').style.display='block'; document.getElementById('ownerEdit').style.display='none';">Cancel</button>
+        <div class="rev-line"><span>Case ID:</span><span style="font-family:monospace; font-weight:600;">${currentAdminCase.case_id}</span></div>
+        <div class="rev-line"><span>Name:</span><span style="font-weight:500;">${currentAdminCase.guest_name}</span></div>
+        <div class="rev-line"><span>Email:</span><span>${currentAdminCase.guest_email}</span></div>
+        <div class="rev-line"><span>Phone:</span><span>${currentAdminCase.guest_phone || 'None'}</span></div>
+        <div class="rev-line"><span>Ref No:</span><span>${currentAdminCase.ref_no || 'None'}</span></div>
+        <div class="rev-line" style="border:none; margin-top:0.5rem; flex-direction:column; gap:0.4rem;">
+          <span>Concern:</span>
+          <span style="font-weight:500; background:white; padding:0.8rem; border-radius:8px; border:1px solid var(--sand-mid);">${currentAdminCase.concern}</span>
         </div>
       </div>
-      <div class="rev-line"><span>Case ID:</span><span style="font-family:monospace; font-weight:600;">${currentAdminCase.case_id}</span></div>
-      <div class="rev-line"><span>Name:</span><span style="font-weight:500;">${currentAdminCase.guest_name}</span></div>
-      <div class="rev-line"><span>Email:</span><span>${currentAdminCase.guest_email}</span></div>
-      <div class="rev-line"><span>Phone:</span><span>${currentAdminCase.guest_phone || 'None'}</span></div>
-      <div class="rev-line"><span>Ref No:</span><span>${currentAdminCase.ref_no || 'None'}</span></div>
-      <div class="rev-line" style="border:none; margin-top:0.5rem; flex-direction:column; gap:0.4rem;">
-        <span>Concern:</span>
-        <span style="font-weight:500; background:white; padding:0.8rem; border-radius:8px; border:1px solid var(--sand-mid);">${currentAdminCase.concern}</span>
+      <div style="background:var(--bg); padding:1.2rem; border-radius:12px; border:1px solid var(--sand-mid);">
+        <div class="rev-line"><span>Case Status:</span><span class="badge ${currentAdminCase.status === 'active' || currentAdminCase.status === 'pending' ? 'badge-pending' : 'badge-confirmed'}">${currentAdminCase.status.toUpperCase()}</span></div>
+        <div class="rev-line"><span>Case Creation Date:</span><span>${dForm(currentAdminCase.created_at)}</span></div>
+        <div class="rev-line"><span>Case Closing Date:</span><span>${dForm(currentAdminCase.closed_at)}</span></div>
       </div>
-    </div>
-    <div style="background:var(--bg); padding:1.2rem; border-radius:12px; border:1px solid var(--sand-mid);">
-      <div class="rev-line"><span>Case Status:</span><span class="badge ${currentAdminCase.status === 'active' || currentAdminCase.status === 'pending' ? 'badge-pending' : 'badge-confirmed'}">${currentAdminCase.status.toUpperCase()}</span></div>
-      <div class="rev-line"><span>Case Creation Date:</span><span>${dForm(currentAdminCase.created_at)}</span></div>
-      <div class="rev-line"><span>Case Closing Date:</span><span>${dForm(currentAdminCase.closed_at)}</span></div>
-    </div>
-  `;
+    `;
 
-  // 2. INTERNAL NOTES TAB
-  const notes = currentAdminCase.internal_notes || [];
-  document.getElementById('csTab-notes').innerHTML = `
-    <div style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem;">
-      ${notes.map(n => `<div style="background:var(--bg);padding:0.6rem;border-radius:8px;margin-bottom:0.5rem;font-size:0.8rem;"><strong>${n.staff}</strong>: ${n.text}</div>`).join('')}
-    </div>
-    <textarea id="csNewNote" class="chat-input" rows="2" placeholder="Add note..."></textarea>
-    <button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="addCsNote()">Save Note</button>
-  `;
+    // 2. INTERNAL NOTES TAB
+    const notes = currentAdminCase.internal_notes || [];
+    document.getElementById('csTab-notes').innerHTML = `
+      <div style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem;">
+        ${notes.map(n => `<div style="background:var(--bg);padding:0.6rem;border-radius:8px;margin-bottom:0.5rem;font-size:0.8rem;"><strong>${n.staff}</strong>: ${n.text}</div>`).join('')}
+      </div>
+      <textarea id="csNewNote" class="chat-input" rows="2" placeholder="Add note..."></textarea>
+      <button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="addCsNote()">Save Note</button>
+    `;
+  }
 
   // 3. MESSAGES & ACTIVITY LOGS
   const msgs = await ABHC_DB.getSupportMessages(currentAdminCase.case_id);
@@ -2267,34 +2281,40 @@ async function loadAdminCase(id, switchTab = true) {
         `;
         chatBody.appendChild(div);
       });
+      // Play sound if there are new messages and it's not the user sending them
+      if (newMsgs.some(m => m.sender_type === 'guest')) {
+        playNotificationSound();
+      }
     }
   }
 
   if (isAtBottom) chatBody.scrollTop = chatBody.scrollHeight;
 
-  // 4. ACTION BUTTONS
-  const inputArea = document.getElementById('adminInputArea');
-  if (currentAdminCase.status === 'pending' || (currentAdminCase.status === 'active' && currentAdminCase.owner !== adminProfile)) {
-    inputArea.innerHTML = `<button class="btn btn-sunset" style="width:100%;" onclick="claimCase()">Claim Case & Reply</button>`;
-  } else if (['closed', 'resolved', 'abandoned'].includes(currentAdminCase.status)) {
-    inputArea.innerHTML = `<div style="text-align:center;width:100%;color:var(--text-muted);font-size:0.85rem;">This case is marked as ${currentAdminCase.status.toUpperCase()}.</div>`;
-  } else {
-    inputArea.innerHTML = `
-      <input type="text" id="adminChatInput" class="chat-input" placeholder="Type reply..." onkeypress="if(event.key==='Enter') sendAdminMsg()">
-      <button class="btn btn-primary" onclick="sendAdminMsg()">Send</button>
-      <div style="display:flex; gap:0.5rem; margin-left:0.5rem; border-left:1px solid var(--sand-mid); padding-left:0.5rem;">
-        <button class="btn btn-success" onclick="updateCaseStatus('resolved')" title="Mark Resolved">✅ Resolved</button>
-        <button class="btn btn-sunset" onclick="updateCaseStatus('abandoned')" title="Mark Abandoned">⚠️ Abandoned</button>
-      </div>
-    `;
-  }
+  if (shouldRenderLayout) {
+    // 4. ACTION BUTTONS
+    const inputArea = document.getElementById('adminInputArea');
+    if (currentAdminCase.status === 'pending' || (currentAdminCase.status === 'active' && currentAdminCase.owner !== adminProfile)) {
+      inputArea.innerHTML = `<button class="btn btn-sunset" style="width:100%;" onclick="claimCase()">Claim Case & Reply</button>`;
+    } else if (['closed', 'resolved', 'abandoned'].includes(currentAdminCase.status)) {
+      inputArea.innerHTML = `<div style="text-align:center;width:100%;color:var(--text-muted);font-size:0.85rem;">This case is marked as ${currentAdminCase.status.toUpperCase()}.</div>`;
+    } else {
+      inputArea.innerHTML = `
+        <input type="text" id="adminChatInput" class="chat-input" placeholder="Type reply..." onkeypress="if(event.key==='Enter') sendAdminMsg()">
+        <button class="btn btn-primary" onclick="sendAdminMsg()">Send</button>
+        <div style="display:flex; gap:0.5rem; margin-left:0.5rem; border-left:1px solid var(--sand-mid); padding-left:0.5rem;">
+          <button class="btn btn-success" onclick="updateCaseStatus('resolved')" title="Mark Resolved">✅ Resolved</button>
+          <button class="btn btn-sunset" onclick="updateCaseStatus('abandoned')" title="Mark Abandoned">⚠️ Abandoned</button>
+        </div>
+      `;
+    }
 
-  // Restore the user's typed drafts if this was a silent background refresh
-  if (!switchTab) {
-    const ci = document.getElementById('adminChatInput');
-    if (ci && draftMsg) ci.value = draftMsg;
-    const ni = document.getElementById('csNewNote');
-    if (ni && draftNote) ni.value = draftNote;
+    // Restore the user's typed drafts if this layout re-render was triggered during a silent refresh
+    if (!switchTab) {
+      const ci = document.getElementById('adminChatInput');
+      if (ci && draftMsg) ci.value = draftMsg;
+      const ni = document.getElementById('csNewNote');
+      if (ni && draftNote) ni.value = draftNote;
+    }
   }
 }
 
@@ -3438,3 +3458,9 @@ async function deleteStaff(id) {
     renderStaffList();
   } catch (err) { toast('Error: ' + err.message, 'error'); }
 }
+
+// ── INIT ON LOAD ─────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  await initStaffRole();
+  navTo('dashboard');
+});

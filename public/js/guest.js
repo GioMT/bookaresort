@@ -1225,36 +1225,53 @@ async function submitPreChat() {
 }
 
 function setupGuestRealtime() {
+  // Use polling as a fallback if realtime publication isn't enabled on the DB
+  if (!window.guestPollInterval) {
+    window.guestMsgCount = -1; // Uninitialized
+    window.guestPollInterval = setInterval(async () => {
+      if (!chatCaseId || botMode) return;
+      try {
+        const msgs = await ABHC_DB.getSupportMessages(chatCaseId);
+        const filtered = msgs.filter(m => !(m.sender_type === 'system' && m.message.includes('ownership transferred')));
+        
+        if (window.guestMsgCount === -1) {
+          window.guestMsgCount = filtered.length;
+        } else if (filtered.length > window.guestMsgCount) {
+          const newMsgs = filtered.slice(window.guestMsgCount);
+          newMsgs.forEach(m => {
+            if (m.sender_type !== 'guest') {
+              const typeMap = { 'system': 'sys', 'bot': 'bot', 'staff': 'bot' };
+              const isClosureMsg = m.sender_type === 'system' &&
+                (m.message.includes('RESOLVED') || m.message.includes('ABANDONED') || m.message.includes('CLOSED'));
+              const displayMsg = isClosureMsg ? '[ Staff has left the conversation ]' : m.message;
+              appendMsg(typeMap[m.sender_type], displayMsg, m.created_at);
+              playNotificationSound();
+              
+              if (isClosureMsg) {
+                document.getElementById('guestChatInputArea').innerHTML = `
+                  <div style="text-align:center;width:100%;font-size:0.85rem;padding:0.5rem 0;display:flex;flex-direction:column;align-items:center;gap:0.5rem;">
+                    <span style="color:var(--text-muted);">This chat has been closed.</span>
+                    <button class="btn btn-primary btn-sm" onclick="startNewGuestChat()">Start New Chat</button>
+                  </div>`;
+                document.getElementById('guestEndChatBtn').style.display = 'none';
+                localStorage.removeItem('abhc_chat_case_id');
+                chatCaseId = null;
+                botMode = true;
+                clearInterval(window.guestPollInterval);
+                window.guestPollInterval = null;
+              }
+            }
+          });
+          window.guestMsgCount = filtered.length;
+        }
+      } catch (e) {}
+    }, 3000);
+  }
+
   if (!guestRealtimeChannel) {
     guestRealtimeChannel = window.supa.channel(`guest-chat-${chatCaseId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages', filter: `case_id=eq.${chatCaseId}` }, (payload) => {
-        if (payload.new.sender_type !== 'guest') {
-          // Hide internal reassignment messages from the guest
-          if (payload.new.sender_type === 'system' && payload.new.message.includes('ownership transferred')) return;
-
-          // Replace raw system status messages with a friendly guest-facing message
-          const typeMap = { 'system': 'sys', 'bot': 'bot', 'staff': 'bot' };
-          const isClosureMsg = payload.new.sender_type === 'system' &&
-            (payload.new.message.includes('RESOLVED') || payload.new.message.includes('ABANDONED') || payload.new.message.includes('CLOSED'));
-          const displayMsg = isClosureMsg ? '[ Staff has left the conversation ]' : payload.new.message;
-          appendMsg(typeMap[payload.new.sender_type], displayMsg, payload.new.created_at);
-
-          playNotificationSound();
-
-          // Lock the guest out of replying if the admin closes the chat
-          if (payload.new.sender_type === 'system' && (payload.new.message.includes('RESOLVED') || payload.new.message.includes('ABANDONED') || payload.new.message.includes('CLOSED'))) {
-            document.getElementById('guestChatInputArea').innerHTML = `
-              <div style="text-align:center;width:100%;font-size:0.85rem;padding:0.5rem 0;display:flex;flex-direction:column;align-items:center;gap:0.5rem;">
-                <span style="color:var(--text-muted);">This chat has been closed.</span>
-                <button class="btn btn-primary btn-sm" onclick="startNewGuestChat()">Start New Chat</button>
-              </div>`;
-            document.getElementById('guestEndChatBtn').style.display = 'none';
-            localStorage.removeItem('abhc_chat_case_id');
-            chatCaseId = null;
-            botMode = true;
-            if (guestRealtimeChannel) { window.supa.removeChannel(guestRealtimeChannel); guestRealtimeChannel = null; }
-          }
-        }
+        // Fallback already handles this via polling to guarantee delivery
       }).subscribe();
   }
 }

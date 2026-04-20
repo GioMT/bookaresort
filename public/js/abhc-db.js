@@ -15,12 +15,11 @@ const ABHC_DB = (() => {
 
   // ── HTTP helper ────────────────────────────────────────────────────────────
   async function req(path, method = 'GET', body = null, params = {}) {
-    // Use direct Netlify function paths to bypass potential local redirect issues
-    const functionPath = path.startsWith('/api/') 
-      ? path.replace('/api/', '/.netlify/functions/') 
-      : path;
-      
-    const url = new URL(functionPath, location.origin);
+    let apiOrigin = location.origin;
+    if (location.hostname === 'localhost' && location.port === '3999') {
+      apiOrigin = 'http://localhost:8888';
+    }
+    const url = new URL(path, apiOrigin);
     Object.entries(params).forEach(([k, v]) => v !== undefined && url.searchParams.set(k, v));
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (body) opts.body = JSON.stringify(body);
