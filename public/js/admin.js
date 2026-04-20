@@ -2248,7 +2248,7 @@ async function loadAdminCase(id, switchTab = true) {
 
   // Populate Chat Body
   const chatBody = document.getElementById('adminChatBody');
-  const isAtBottom = switchTab || (chatBody.scrollHeight - chatBody.scrollTop <= chatBody.clientHeight + 15);
+  const isAtBottom = switchTab || (chatBody.scrollHeight - chatBody.scrollTop <= chatBody.clientHeight + 50);
 
   const chatMsgs = msgs.filter(m => m.sender_type !== 'system');
 
@@ -2361,7 +2361,21 @@ async function sendAdminMsg() {
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
-  // Fire and forget (Realtime listener will auto-refresh UI)
+  
+  // Optimistic UI update
+  const chatBody = document.getElementById('adminChatBody');
+  const timeStr = new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+  const div = document.createElement('div');
+  div.className = `chat-msg msg-bot`; // staff uses msg-bot styling
+  div.innerHTML = `
+    <div style="font-size:0.65rem;opacity:0.7;margin-bottom:0.2rem;">${adminProfile}</div>
+    ${text}
+    <div style="font-size:0.6rem; opacity:0.6; text-align:right; margin-top:4px;">${timeStr}</div>
+  `;
+  chatBody.appendChild(div);
+  chatBody.scrollTop = chatBody.scrollHeight; // Force scroll to bottom immediately
+  
+  // Fire and forget (Realtime listener/polling will pick it up but slice handles dupes)
   ABHC_DB.sendSupportMessage({ case_id: currentAdminCase.case_id, sender_type: 'staff', sender_name: adminProfile, message: text });
 }
 
