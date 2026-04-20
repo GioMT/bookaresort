@@ -2299,7 +2299,7 @@ async function loadAdminCase(id, switchTab = true) {
       inputArea.innerHTML = `<div style="text-align:center;width:100%;color:var(--text-muted);font-size:0.85rem;">This case is marked as ${currentAdminCase.status.toUpperCase()}.</div>`;
     } else {
       inputArea.innerHTML = `
-        <input type="text" id="adminChatInput" class="chat-input" placeholder="Type reply..." onkeypress="if(event.key==='Enter') sendAdminMsg()">
+        <input type="text" id="adminChatInput" autocomplete="off" class="chat-input" placeholder="Type reply..." onkeypress="if(event.key==='Enter') sendAdminMsg()">
         <button class="btn btn-primary" onclick="sendAdminMsg()">Send</button>
         <div style="display:flex; gap:0.5rem; margin-left:0.5rem; border-left:1px solid var(--sand-mid); padding-left:0.5rem;">
           <button class="btn btn-success" onclick="updateCaseStatus('resolved')" title="Mark Resolved">✅ Resolved</button>

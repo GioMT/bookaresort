@@ -484,7 +484,7 @@
       </div>
       <div class="chat-body" id="guestChatBody"></div>
       <div class="chat-input-area" id="guestChatInputArea">
-        <input type="text" id="guestChatInput" class="chat-input" placeholder="Type a message..."
+        <input type="text" id="guestChatInput" autocomplete="off" class="chat-input" placeholder="Type a message..."
           onkeypress="if(event.key==='Enter') sendGuestMsg()">
         <button class="chat-send" onclick="sendGuestMsg()">➤</button>
       </div>

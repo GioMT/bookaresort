@@ -1312,7 +1312,7 @@ async function endGuestChat(silent = false) {
   document.getElementById('guestChatBody').innerHTML = '';
   document.getElementById('guestEndChatBtn').style.display = 'none';
   document.getElementById('guestChatInputArea').innerHTML = `
-    <input type="text" id="guestChatInput" class="chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendGuestMsg()">
+    <input type="text" id="guestChatInput" autocomplete="off" class="chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendGuestMsg()">
     <button class="chat-send" onclick="sendGuestMsg()">➤</button>
   `;
   if (guestRealtimeChannel) { window.supa.removeChannel(guestRealtimeChannel); guestRealtimeChannel = null; }
