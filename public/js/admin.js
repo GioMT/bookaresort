@@ -2137,7 +2137,6 @@ async function refreshSupportUI() {
     document.getElementById('queueActive').innerHTML = renderQ(active);
 
     if (currentAdminCase) {
-      currentAdminCase = cases.find(c => c.case_id === currentAdminCase.case_id) || currentAdminCase;
       loadAdminCase(currentAdminCase.case_id, false); // refresh details silently
     }
   }
