@@ -9,6 +9,31 @@ let _currentStaffName = 'Unknown Staff';
 let _currentStaffEmail = '';
 let _seData = {}; // Global CMS content storage
 
+// --- NOTIFICATION SOUND (module-level so all functions can use it) ---
+let _adminAudioCtx = null;
+let _adminLastSoundTime = 0;
+function playNotificationSound() {
+  const now = Date.now();
+  if (now - _adminLastSoundTime < 1000) return;
+  _adminLastSoundTime = now;
+  try {
+    if (!_adminAudioCtx) _adminAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_adminAudioCtx.state === 'suspended') _adminAudioCtx.resume();
+    const osc = _adminAudioCtx.createOscillator();
+    const gainNode = _adminAudioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(523.25, _adminAudioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1046.50, _adminAudioCtx.currentTime + 0.1);
+    gainNode.gain.setValueAtTime(0, _adminAudioCtx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.3, _adminAudioCtx.currentTime + 0.05);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, _adminAudioCtx.currentTime + 0.5);
+    osc.connect(gainNode);
+    gainNode.connect(_adminAudioCtx.destination);
+    osc.start();
+    osc.stop(_adminAudioCtx.currentTime + 0.5);
+  } catch (e) { console.error("Audio API not supported or blocked", e); }
+}
+
 async function initStaffRole() {
   try {
     const { data: { session } } = await window.supa.auth.getSession();
@@ -2035,37 +2060,6 @@ async function initSupport() {
 
   window.caseFollowupTimeouts = window.caseFollowupTimeouts || {};
 
-  // --- NOTIFICATION SOUND ---
-  let audioCtx = null;
-  let lastSoundTime = 0;
-  function playNotificationSound() {
-    const now = Date.now();
-    if (now - lastSoundTime < 1000) return; // Prevent double ding when case and message arrive simultaneously
-    lastSoundTime = now;
-
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-
-      const osc = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-      osc.frequency.exponentialRampToValueAtTime(1046.50, audioCtx.currentTime + 0.1); // C6
-
-      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-
-      osc.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.5);
-    } catch (e) { console.error("Audio API not supported or blocked", e); }
-  }
-
   if (!adminRealtimeChannel) {
     adminRealtimeChannel = window.supa.channel('admin-support-tracker')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'support_cases' }, (payload) => {
@@ -2326,10 +2320,13 @@ function switchCsTab(tab) {
 
 async function claimCase() {
   try {
-    await ABHC_DB.updateSupportCase(currentAdminCase.case_id, { status: 'active', owner: adminProfile });
-    await ABHC_DB.sendSupportMessage({ case_id: currentAdminCase.case_id, sender_type: 'system', sender_name: 'System', message: `${adminProfile} joined the chat.` });
-    await logSystemAction(`claimed support case ${currentAdminCase.case_id}`);
-    await refreshSupportUI();
+    const caseId = currentAdminCase.case_id;
+    await ABHC_DB.updateSupportCase(caseId, { status: 'active', owner: adminProfile });
+    await ABHC_DB.sendSupportMessage({ case_id: caseId, sender_type: 'system', sender_name: 'System', message: `${adminProfile} joined the chat.` });
+    await logSystemAction(`claimed support case ${caseId}`);
+    // Force full re-render so the "Claim" button is replaced with the chat input
+    currentAdminCase = null; // Clear stale state so loadAdminCase does a fresh render
+    await loadAdminCase(caseId, true);
   } catch (err) { toast('Error claiming case: ' + err.message, 'error'); }
 }
 
@@ -2337,21 +2334,26 @@ async function saveCaseOwner() {
   const newOwner = document.getElementById('newOwnerInput').value.trim();
   if (!newOwner) return;
   try {
-    await ABHC_DB.updateSupportCase(currentAdminCase.case_id, { owner: newOwner });
-    await ABHC_DB.sendSupportMessage({ case_id: currentAdminCase.case_id, sender_type: 'system', sender_name: 'System', message: `Case ownership transferred to ${newOwner}.` });
-    await logSystemAction(`transferred case ${currentAdminCase.case_id} to ${newOwner}`);
-    await refreshSupportUI();
+    const caseId = currentAdminCase.case_id;
+    await ABHC_DB.updateSupportCase(caseId, { owner: newOwner });
+    await ABHC_DB.sendSupportMessage({ case_id: caseId, sender_type: 'system', sender_name: 'System', message: `Case ownership transferred to ${newOwner}.` });
+    await logSystemAction(`transferred case ${caseId} to ${newOwner}`);
+    currentAdminCase = null;
+    await loadAdminCase(caseId, true);
   } catch (err) { toast('Error saving owner: ' + err.message, 'error'); }
 }
 
 async function updateCaseStatus(action) {
   try {
+    const caseId = currentAdminCase.case_id;
     const finalStatus = (action === 'resolved' || action === 'abandoned') ? 'closed' : action;
-    await ABHC_DB.updateSupportCase(currentAdminCase.case_id, { status: finalStatus, closed_at: new Date().toISOString() });
+    await ABHC_DB.updateSupportCase(caseId, { status: finalStatus, closed_at: new Date().toISOString() });
     const actionText = action === 'resolved' ? 'RESOLVED' : (action === 'abandoned' ? 'ABANDONED' : action.toUpperCase());
-    await ABHC_DB.sendSupportMessage({ case_id: currentAdminCase.case_id, sender_type: 'system', sender_name: 'System', message: `Case marked as ${actionText} by ${adminProfile}.` });
-    await logSystemAction(`marked support case ${currentAdminCase.case_id} as ${actionText}`);
-    await refreshSupportUI();
+    await ABHC_DB.sendSupportMessage({ case_id: caseId, sender_type: 'system', sender_name: 'System', message: `Case marked as ${actionText} by ${adminProfile}.` });
+    await logSystemAction(`marked support case ${caseId} as ${actionText}`);
+    // Force full re-render so the UI reflects the closed state
+    currentAdminCase = null;
+    await loadAdminCase(caseId, true);
   } catch (err) { toast('Error updating status: ' + err.message, 'error'); }
 }
 
@@ -2365,7 +2367,7 @@ async function sendAdminMsg() {
   const chatBody = document.getElementById('adminChatBody');
   const timeStr = new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
   const div = document.createElement('div');
-  div.className = `chat-msg msg-bot`; // staff uses msg-bot styling
+  div.className = `chat-msg msg-guest`; // staff messages go right side, light blue
   div.innerHTML = `
     <div style="font-size:0.65rem;opacity:0.7;margin-bottom:0.2rem;">${adminProfile}</div>
     ${text}
