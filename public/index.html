@@ -4,24 +4,70 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Avellano's Beach Hut Cottage – Luxury Beachfront Retreat</title>
+  <title>Loading...</title>
+  
+  <!-- Prevent Theme & Content Flash -->
+  <script>
+    try {
+      document.title = "Avellano's Beach Hut Cottage – Luxury Beachfront Retreat";
+      const savedTheme = localStorage.getItem('abhc_theme');
+      if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+      
+      const scRaw = localStorage.getItem('ABHC_siteContent');
+      if (scRaw) {
+        const parsed = JSON.parse(scRaw);
+        if (parsed && parsed.data && Array.isArray(parsed.data)) {
+          const bizItem = parsed.data.find(i => i.key === 'business_name');
+          if (bizItem && bizItem.value) {
+            document.title = bizItem.value + ' – Luxury Beachfront Retreat';
+          }
+        }
+      }
+    } catch (e) {}
+  </script>
   <meta name="description"
     content="Avellano's Beach Hut Cottage – a luxury beach resort. Book direct for best rates, ocean views, and unforgettable sunsets.">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600&family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&family=Karla:wght@300;400;500&family=Lora:ital,wght@0,400;0,500;1,400&family=Montserrat:wght@300;400;500;600&family=Nunito:wght@300;400;500;600&family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Poppins:wght@300;400;500&family=Rubik:wght@300;400;500&family=Space+Grotesk:wght@300;400;500;600&family=Syne:wght@400;500;600;700&family=Work+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/guest.css">
+  
 </head>
 
 
 
 <body>
 
+  <!-- Preloader -->
+  <div id="preloader">
+    <div class="loader-content">
+      <div class="loader-logo" id="preloaderLogo">Loading...</div>
+      <script>
+        try {
+          const scRaw = localStorage.getItem('ABHC_siteContent');
+          if (scRaw) {
+            const parsed = JSON.parse(scRaw);
+            if (parsed && parsed.data && Array.isArray(parsed.data)) {
+              const bizItem = parsed.data.find(i => i.key === 'business_name');
+              if (bizItem && bizItem.value) {
+                document.getElementById('preloaderLogo').innerHTML = bizItem.value;
+              }
+            }
+          }
+        } catch (e) {}
+      </script>
+      <div class="loader-wave"></div>
+    </div>
+  </div>
+
+  <!-- Scroll Progress -->
+  <div id="scroll-progress"></div>
+
   <div class="page-transition"></div>
   <div id="cursor-glow"></div>
 
   <!-- NAV -->
   <nav class="sticky-book" id="mainNav">
-    <a class="nav-logo" href="#" data-sc="nav_brand">Avellano's <span>Beach Hut</span></a>
+    <a class="nav-logo" href="#" data-sc="nav_brand"><span>Resort</span></a>
 
     <ul class="nav-links" id="navLinks">
       <li><a href="#booking" onclick="toggleMobileMenu()">Book</a></li>
@@ -33,7 +79,10 @@
     </ul>
 
     <div class="nav-actions">
-      <a href="#booking" class="btn-book-now">Reserve Now</a>
+      <button id="darkModeToggle" class="btn-icon" title="Toggle Night View" style="background:transparent; border:none; color:white; cursor:pointer; font-size:1.1rem; padding:0.5rem; display:flex; align-items:center; justify-content:center;">
+        <span id="darkModeIcon">🌙</span>
+      </button>
+      <a href="#booking" class="btn-book-now magnetic">Reserve Now</a>
       <button class="mobile-nav-toggle" id="mobileNavToggle" onclick="toggleMobileMenu()" aria-label="Toggle Menu">
         <span class="bar"></span>
         <span class="bar"></span>
@@ -61,12 +110,12 @@
     </div>
 
     <div class="hero-content">
-      <span class="hero-badge" data-sc="hero_badge">✦ Beachfront Paradise · Philippines ✦</span>
-      <h1 data-sc="hero_title">Avellano's<br><em>Beach Hut</em> Cottage</h1>
-      <p class="hero-sub" data-sc="hero_subtitle">Where the ocean meets endless sunsets. A private beachfront retreat crafted for those who seek
+      <span class="hero-badge reveal stagger-1" data-sc="hero_badge">✦ Beachfront Paradise · Philippines ✦</span>
+      <h1 class="reveal stagger-2" data-sc="hero_title">Avellano's<br><em>Beach Hut</em> Cottage</h1>
+      <p class="hero-sub reveal stagger-3" data-sc="hero_subtitle">Where the ocean meets endless sunsets. A private beachfront retreat crafted for those who seek
         stillness, warmth, and the rhythm of the tides.</p>
-      <div class="hero-ctas">
-        <a href="#booking" class="btn-hero-primary">Reserve Your Stay</a>
+      <div class="hero-ctas reveal stagger-4">
+        <a href="#booking" class="btn-hero-primary magnetic">Reserve Your Stay</a>
         <a href="#rooms" class="btn-hero-outline">Explore Rooms</a>
       </div>
     </div>
@@ -92,8 +141,8 @@
     </div>
     <div class="weather-item"><span class="weather-icon" style="animation-delay:0.8s;">🌊</span>
       <div>
-        <div class="weather-label">Sea Temp</div>
-        <div style="font-weight:500;font-size:1rem;">29°C</div>
+        <div class="weather-label">Current Tide</div>
+        <div id="weatherTide" style="font-weight:500;font-size:1rem;">Loading...</div>
       </div>
     </div>
     <div class="weather-item"><span class="weather-icon" style="animation-delay:1.2s;">🌅</span>
@@ -108,27 +157,8 @@
 
   <!-- PERKS -->
   <div class="perks-bar">
-    <div class="perks-grid">
-      <div class="perk-item reveal stagger-1"><span class="perk-icon" data-sc="perk_1_icon">💰</span>
-        <div class="perk-title" data-sc="perk_1_title">Best Rate Guarantee</div>
-        <div class="perk-desc" data-sc="perk_1_desc">Book direct, pay less than any OTA</div>
-      </div>
-      <div class="perk-item reveal stagger-2"><span class="perk-icon" data-sc="perk_2_icon">🎁</span>
-        <div class="perk-title" data-sc="perk_2_title">Free Welcome Package</div>
-        <div class="perk-desc" data-sc="perk_2_desc">Fruits & local wine on arrival</div>
-      </div>
-      <div class="perk-item reveal stagger-3"><span class="perk-icon" data-sc="perk_3_icon">🏊</span>
-        <div class="perk-title" data-sc="perk_3_title">Early Check-In</div>
-        <div class="perk-desc" data-sc="perk_3_desc">Complimentary when available</div>
-      </div>
-      <div class="perk-item reveal stagger-4"><span class="perk-icon" data-sc="perk_4_icon">🔄</span>
-        <div class="perk-title" data-sc="perk_4_title">Free Cancellation</div>
-        <div class="perk-desc" data-sc="perk_4_desc">Up to 48 hours before arrival</div>
-      </div>
-      <div class="perk-item reveal stagger-5"><span class="perk-icon" data-sc="perk_5_icon">🛎</span>
-        <div class="perk-title" data-sc="perk_5_title">Priority Service</div>
-        <div class="perk-desc" data-sc="perk_5_desc">Dedicated concierge attention</div>
-      </div>
+    <div class="perks-grid" id="perksGrid">
+      <!-- Dynamically populated from site content -->
     </div>
   </div>
 
@@ -143,8 +173,7 @@
       </div>
       <div class="booking-card reveal">
         <div class="booking-tabs">
-          <div class="booking-tab active" id="tabBtn-calendar" onclick="switchTab('calendar')">📅 Step 1 · Pick Dates
-          </div>
+          <div class="booking-tab active" id="tabBtn-calendar" onclick="switchTab('calendar')">📅 Step 1 · Pick Dates</div>
           <div class="booking-tab" id="tabBtn-room" onclick="switchTab('room')">🏠 Step 2 · Choose Room</div>
           <div class="booking-tab" id="tabBtn-confirm" onclick="switchTab('confirm')">✅ Step 3 · Confirm</div>
         </div>
@@ -156,27 +185,19 @@
               <div id="cal1"></div>
               <div id="cal2" style="margin-top:1.8rem;"></div>
               <div class="cal-legend">
-                <div class="legend-item">
-                  <div class="legend-dot legend-avail"></div>Available
-                </div>
-                <div class="legend-item">
-                  <div class="legend-dot legend-unavail"></div>Booked out
-                </div>
-                <div class="legend-item">
-                  <div class="legend-dot legend-sel"></div>Your selection
-                </div>
+                <div class="legend-item"><div class="legend-dot legend-avail"></div>Available</div>
+                <div class="legend-item"><div class="legend-dot legend-unavail"></div>Booked out</div>
+                <div class="legend-item"><div class="legend-dot legend-sel"></div>Your selection</div>
               </div>
             </div>
             <div>
               <div id="booking-summary-area">
                 <div style="text-align:center;padding:3rem 1rem;color:var(--text-muted);">
                   <div style="font-size:3rem;margin-bottom:1rem;">🗓️</div>
-                  <p style="font-size:0.95rem;">Click a <strong>check-in</strong> date, then a
-                    <strong>check-out</strong> date to see your stay summary.</p>
+                  <p style="font-size:0.95rem;">Click a <strong>check-in</strong> date, then a <strong>check-out</strong> date to see your stay summary.</p>
                 </div>
               </div>
-              <button class="btn-reserve" id="btnToRoom" onclick="switchTab('room')" style="display:none;">Continue —
-                Choose Your Room →</button>
+              <button class="btn-reserve" id="btnToRoom" onclick="switchTab('room')" style="display:none;">Continue — Choose Your Room →</button>
             </div>
           </div>
         </div>
@@ -187,33 +208,24 @@
             style="background:var(--aqua-light);border-radius:12px;padding:0.9rem 1.2rem;margin-bottom:1.5rem;font-size:0.88rem;color:var(--aqua-deep);font-weight:500;">
           </div>
           <div class="room-selector" id="roomSelector"></div>
-          <button class="btn-reserve" id="btnToConfirm" onclick="switchTab('confirm')" style="display:none;">Continue —
-            Review &amp; Confirm →</button>
-          <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.7rem;text-align:center;">✅ Availability
-            checked against your selected dates in real time.</p>
+          <button class="btn-reserve" id="btnToConfirm" onclick="switchTab('confirm')" style="display:none;">Continue — Review &amp; Confirm →</button>
+          <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.7rem;text-align:center;">✅ Availability checked against your selected dates in real time.</p>
         </div>
 
         <!-- TAB 3: CONFIRM -->
         <div class="booking-tab-pane" id="tab-confirm">
           <div style="max-width:520px;margin:0 auto;">
-            <div id="confirmSummary"
-              style="background:var(--sand);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;"></div>
+            <div id="confirmSummary" style="background:var(--sand);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;"></div>
             <div class="flagged-warning" id="flaggedWarning">⚠️ <span id="flaggedMsg"></span></div>
             <div class="form-row" style="margin-bottom:0;">
-              <div class="form-group"><label>First Name</label><input type="text" id="guestFname"
-                  placeholder="First name" oninput="checkFlagged()"></div>
-              <div class="form-group"><label>Last Name</label> <input type="text" id="guestLname"
-                  placeholder="Last name" oninput="checkFlagged()"></div>
+              <div class="floating-group"><input type="text" id="guestFname" placeholder="First name" oninput="checkFlagged()"><label>First Name</label></div>
+              <div class="floating-group"><input type="text" id="guestLname" placeholder="Last name" oninput="checkFlagged()"><label>Last Name</label></div>
             </div>
-            <div class="form-group"><label>Email</label><input type="email" id="guestEmail" placeholder="your@email.com"
-                oninput="checkFlagged()"></div>
-            <div class="form-group"><label>Phone</label><input type="tel" id="guestPhone"
-                placeholder="+63 912 345 6789"></div>
-            <div class="form-group"><label>Special Requests</label><textarea id="guestReq" rows="2"
-                placeholder="Anniversary setup, dietary needs, early arrival..."></textarea></div>
-            <button class="btn-reserve" onclick="submitReservation()">🏖 Confirm My Reservation</button>
-            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.8rem;text-align:center;">🔒 Secure booking
-              · Free cancellation up to 48 hours before arrival</p>
+            <div class="floating-group"><input type="email" id="guestEmail" placeholder="your@email.com" oninput="checkFlagged()"><label>Email</label></div>
+            <div class="floating-group"><input type="tel" id="guestPhone" placeholder="+63 912 345 6789"><label>Phone</label></div>
+            <div class="floating-group"><textarea id="guestReq" rows="2" placeholder="Anniversary setup, dietary needs, early arrival..."></textarea><label>Special Requests</label></div>
+            <button class="btn-reserve magnetic" onclick="submitReservation()">🏖 Confirm My Reservation</button>
+            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.8rem;text-align:center;">🔒 Secure booking · Free cancellation up to 48 hours before arrival</p>
           </div>
         </div>
       </div>
@@ -272,12 +284,8 @@
         </h2>
         <p class="section-sub" id="tourDesc" style="transition: opacity 0.3s ease;">Explore every corner before you
           arrive. 360° views — because seeing is believing.</p>
-        <div class="tour-tabs">
-          <button class="tour-tab active" data-bg="tb-suite" onclick="setTourBg(this)">Beachfront Suite</button>
-          <button class="tour-tab" data-bg="tb-cottage" onclick="setTourBg(this)">Garden Cottage</button>
-          <button class="tour-tab" data-bg="tb-villa" onclick="setTourBg(this)">Sunset Villa</button>
-          <button class="tour-tab" data-bg="tb-beach" onclick="setTourBg(this)">Beach Area</button>
-          <button class="tour-tab" data-bg="tb-restaurant" onclick="setTourBg(this)">Restaurant</button>
+        <div class="tour-tabs" id="tourTabs">
+          <!-- Dynamically populated from Rooms & Dining -->
         </div>
       </div>
       <div class="tour-visual reveal-right" onclick="launchTour()">
@@ -302,39 +310,8 @@
       <p class="section-sub" style="margin:0 auto;text-align:center;color:rgba(255,255,255,0.75);" data-sc="activities_subtitle">From thrilling water
         sports to serene sunset yoga.</p>
     </div>
-    <div class="activities-grid">
-      <div class="activity-card reveal stagger-1"><span class="activity-icon" data-sc="act_1_icon">🤿</span>
-        <div class="activity-name" data-sc="act_1_name">Scuba Diving</div>
-        <div class="activity-desc" data-sc="act_1_desc">Explore vibrant coral reefs with certified instructors</div>
-      </div>
-      <div class="activity-card reveal stagger-2"><span class="activity-icon" data-sc="act_2_icon">🏄</span>
-        <div class="activity-name" data-sc="act_2_name">Surfing</div>
-        <div class="activity-desc" data-sc="act_2_desc">Lessons and board rentals for all skill levels</div>
-      </div>
-      <div class="activity-card reveal stagger-3"><span class="activity-icon" data-sc="act_3_icon">🚣</span>
-        <div class="activity-name" data-sc="act_3_name">Island Hopping</div>
-        <div class="activity-desc" data-sc="act_3_desc">Guided tours to hidden coves and sandbars</div>
-      </div>
-      <div class="activity-card reveal stagger-4"><span class="activity-icon" data-sc="act_4_icon">🧘</span>
-        <div class="activity-name" data-sc="act_4_name">Sunrise Yoga</div>
-        <div class="activity-desc" data-sc="act_4_desc">Daily beach sessions at dawn</div>
-      </div>
-      <div class="activity-card reveal stagger-1"><span class="activity-icon" data-sc="act_5_icon">🎣</span>
-        <div class="activity-name" data-sc="act_5_name">Deep Sea Fishing</div>
-        <div class="activity-desc" data-sc="act_5_desc">Charter a boat and reel in the big catch</div>
-      </div>
-      <div class="activity-card reveal stagger-2"><span class="activity-icon" data-sc="act_6_icon">🌴</span>
-        <div class="activity-name" data-sc="act_6_name">Mangrove Kayak</div>
-        <div class="activity-desc" data-sc="act_6_desc">Kayak through serene mangrove forests</div>
-      </div>
-      <div class="activity-card reveal stagger-3"><span class="activity-icon" data-sc="act_7_icon">🍹</span>
-        <div class="activity-name" data-sc="act_7_name">Cocktail Making</div>
-        <div class="activity-desc" data-sc="act_7_desc">Mix tropical drinks at our beach bar</div>
-      </div>
-      <div class="activity-card reveal stagger-4"><span class="activity-icon" data-sc="act_8_icon">🌟</span>
-        <div class="activity-name" data-sc="act_8_name">Stargazing Night</div>
-        <div class="activity-desc" data-sc="act_8_desc">Guided astronomy on the open beach</div>
-      </div>
+    <div class="activities-grid" id="activitiesGrid">
+      <!-- Dynamically populated from site content -->
     </div>
   </section>
 
@@ -345,29 +322,8 @@
       <h2 class="section-title" data-sc="dining_title">Flavors of the <em>Sea</em></h2>
       <p class="section-sub" style="margin:0 auto;text-align:center;" data-sc="dining_subtitle">Fresh catch, local spices, ocean breezes.</p>
     </div>
-    <div class="dining-grid">
-      <div class="dining-card reveal-left">
-        <div class="dining-img restaurant"><span class="dining-emoji">🍽️</span></div>
-        <div class="dining-body">
-          <h3 class="dining-name" data-sc="dining_1_name">Kainan sa Dagat</h3>
-          <div class="dining-type" data-sc="dining_1_type">Beachfront Restaurant</div>
-          <p class="dining-desc" data-sc="dining_1_desc">Fresh seafood grilled to order, Filipino classics with a gourmet twist, all with your
-            toes in the sand.</p>
-          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;" data-sc="dining_1_hours">Open: 7:00 AM – 10:00 PM</p>
-          <a href="#contact" class="btn-menu">View Menu</a>
-        </div>
-      </div>
-      <div class="dining-card reveal-right">
-        <div class="dining-img bar"><span class="dining-emoji">🍹</span></div>
-        <div class="dining-body">
-          <h3 class="dining-name" data-sc="dining_2_name">Halo-Halo Sunset Bar</h3>
-          <div class="dining-type" data-sc="dining_2_type">Beachside Bar &amp; Grill</div>
-          <p class="dining-desc" data-sc="dining_2_desc">Handcrafted cocktails, cold craft beers, and light bites. Watch the sky turn amber and
-            gold.</p>
-          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;" data-sc="dining_2_hours">Open: 11:00 AM – Midnight</p>
-          <a href="#contact" class="btn-menu">View Menu</a>
-        </div>
-      </div>
+    <div class="dining-grid" id="diningGrid">
+      <!-- Dynamically populated from site content -->
     </div>
   </section>
 
@@ -392,7 +348,7 @@
       </div>
 
       <div style="text-align:center; margin-bottom: 2rem;">
-        <button class="btn-reserve" id="openFeedFormBtn" style="width:auto; padding: 0.8rem 2rem;"
+        <button class="btn-reserve magnetic" id="openFeedFormBtn" style="width:auto; padding: 0.8rem 2rem;"
           onclick="document.getElementById('feedFormContainer').style.display='block'; this.style.display='none';">Share
           your story</button>
       </div>
@@ -400,20 +356,20 @@
       <div id="feedFormContainer" class="booking-card reveal"
         style="max-width:600px; padding:2rem; margin-bottom:3rem; display:none;">
         <div class="form-row">
-          <div class="form-group"><label>Name</label><input type="text" id="feedName"
-              placeholder="Full name is not required."></div>
-          <div class="form-group"><label>Guest Ref No.</label><input type="text" id="feedRef"
-              placeholder="e.g. ABHC-XYZ123"></div>
+          <div class="floating-group"><input type="text" id="feedName"
+              placeholder="Full name is not required."><label>Name</label></div>
+          <div class="floating-group"><input type="text" id="feedRef"
+              placeholder="e.g. ABHC-XYZ123"><label>Guest Ref No.</label></div>
         </div>
-        <div class="form-group"><label>Message / Caption</label><textarea id="feedCaption" rows="3"
-            placeholder="How's your stay experience with us?"></textarea></div>
+        <div class="floating-group"><textarea id="feedCaption" rows="3"
+            placeholder="How's your stay experience with us?"></textarea><label>Message / Caption</label></div>
         <div class="form-group"><label>Photo</label><input type="file" id="feedPhoto" accept="image/*"
             style="padding:0.45rem;"></div>
 
         <div style="display:flex; gap:1rem; margin-top: 1rem;">
           <button class="btn-ghost" style="flex:1;"
             onclick="document.getElementById('feedFormContainer').style.display='none'; document.getElementById('openFeedFormBtn').style.display='inline-block';">Cancel</button>
-          <button class="btn-reserve" id="feedSubmitBtn" style="flex:2; margin-top:0;" onclick="submitFeedPost()">Submit
+          <button class="btn-reserve magnetic" id="feedSubmitBtn" style="flex:2; margin-top:0;" onclick="submitFeedPost()">Submit
             Story</button>
         </div>
       </div>
@@ -470,8 +426,17 @@
         </ul>
       </div>
       <div class="reveal-right">
-        <div class="map-placeholder" id="guestMapBtn"
-          onclick="window.open('https://maps.google.com/?q=avellanos+beach+resort+philippines','_blank')">🗺️</div>
+        <div class="map-container" id="guestMapBtn">
+          <iframe 
+            id="guestMapIframe"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15444.643666571587!2d121.9213!3d11.9687!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTHCsDU4JzA3LjMiTiAxMjHCsDU1JzE2LjciRQ!5e0!3m2!1sen!2sph!4v1620000000000!5m2!1sen!2sph" 
+            width="100%" 
+            height="100%" 
+            style="border:0; border-radius: 16px;" 
+            allowfullscreen="" 
+            loading="lazy">
+          </iframe>
+        </div>
       </div>
     </div>
   </section>
@@ -483,23 +448,8 @@
       <h2 class="section-title" style="color:white;">We're Here to <em style="color:#FFD0B5;">Help</em></h2>
       <p style="color:rgba(255,255,255,0.7);font-size:0.95rem;line-height:1.7;">Questions? Special requests? Our team is
         always ready for you.</p>
-      <div class="contact-grid">
-        <div class="contact-item"><span class="contact-icon">📞</span>
-          <div class="contact-label">Phone</div>
-          <div class="contact-value" data-sc="contact_phone">+63 912 345 6789</div>
-        </div>
-        <div class="contact-item"><span class="contact-icon">📧</span>
-          <div class="contact-label">Email</div>
-          <div class="contact-value" data-sc="contact_email">hello@avellanos.ph</div>
-        </div>
-        <div class="contact-item"><span class="contact-icon">📍</span>
-          <div class="contact-label">Location</div>
-          <div class="contact-value" data-sc="contact_location">Avellano's Cove, Philippines</div>
-        </div>
-        <div class="contact-item"><span class="contact-icon">⏰</span>
-          <div class="contact-label">Front Desk</div>
-          <div class="contact-value" data-sc="contact_hours">24 / 7</div>
-        </div>
+      <div class="contact-grid" id="contactGrid">
+        <!-- Dynamically populated from site content -->
       </div>
     </div>
   </section>
@@ -525,7 +475,7 @@
     <div class="chat-window" id="guestChatWindow">
       <div class="chat-header">
         <div>
-          <span style="display:block;">Avellano's Support</span>
+          <span style="display:block;" id="chatSupportTitle">Avellano's Support</span>
           <button id="guestEndChatBtn" onclick="endGuestChat()"
             style="display:none; font-size:0.7rem; background:rgba(255,255,255,0.2); border:none; color:white; padding:0.2rem 0.5rem; border-radius:4px; cursor:pointer; margin-top:0.2rem;">End
             Chat</button>

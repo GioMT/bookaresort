@@ -7,6 +7,7 @@
 let _currentStaffRole = 'staff'; // default to lowest privilege
 let _currentStaffName = 'Unknown Staff';
 let _currentStaffEmail = '';
+let _seData = {}; // Global CMS content storage
 
 async function initStaffRole() {
   try {
@@ -27,7 +28,10 @@ async function initStaffRole() {
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-function fmtD(d) { return d instanceof Date ? d.toISOString().split('T')[0] : d; }
+function fmtD(d) {
+  if (!(d instanceof Date)) return d;
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
 function parseD(s) { if (!s) return null; const [y, m, dy] = s.split('-').map(Number); return new Date(y, m - 1, dy); }
 function fmtMoney(n) { return '₱' + (+n || 0).toLocaleString(); }
 function fmt(s) { if (!s) return '—'; const d = parseD(s); return d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : s; }
@@ -66,7 +70,18 @@ const PAGE_TITLES = {
   siteeditor: 'Site Editor', business: 'Business Information',
 };
 
-function navTo(page) {
+async function navTo(page) {
+  if (page === 'staff') {
+    if (_currentStaffRole !== 'master') {
+      toast("Only Master Admin can access Staff Accounts.", "error");
+      return;
+    }
+    document.getElementById('staffAuthPass').value = '';
+    openModal('staffAuthModal');
+    setTimeout(() => document.getElementById('staffAuthPass').focus(), 300);
+    return; // Don't navigate yet, wait for auth
+  }
+
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -81,11 +96,49 @@ function navTo(page) {
   if (page === 'guests') renderFlaggedTable();
   if (page === 'calendar') renderAdminCal();
   if (page === 'logs') renderLogsTab();
-  if (page === 'chat') initSupport(); // Boots up the listener when they click the tab
+  if (page === 'chat') initSupport();
   if (page === 'directory') renderDirectory();
+  if (page === 'staff') renderStaffList();
   if (page === 'siteeditor') renderSiteEditor();
   if (page === 'business') renderBusinessInfo();
+
   if (window.innerWidth <= 900) closeSidebar();
+}
+
+// ── INITIALIZE CMS DATA ──
+async function initCMSData() {
+  try {
+    const items = await ABHC_DB.getSiteContent();
+    items.forEach(i => { _seData[i.key] = i.value; });
+  } catch (e) { console.error("Failed to load CMS data:", e); }
+}
+initCMSData();
+
+window.authenticateStaffTab = async function () {
+  const p = document.getElementById('staffAuthPass').value;
+  if (!p) return;
+  const btn = document.querySelector('#staffAuthModal .btn-primary');
+  btn.disabled = true; btn.textContent = 'Verifying...';
+
+  try {
+    const { error } = await window.supa.auth.signInWithPassword({ email: _currentStaffEmail, password: p });
+    if (error) throw error;
+
+    closeModal('staffAuthModal');
+
+    // Now perform the actual navigation
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelector(`.nav-item[data-page="staff"]`).classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-staff').classList.add('active');
+    document.getElementById('topbarTitle').textContent = PAGE_TITLES['staff'];
+    renderStaffList();
+    if (window.innerWidth <= 900) closeSidebar();
+  } catch (e) {
+    toast("Authentication failed: " + e.message, "error");
+  } finally {
+    btn.disabled = false; btn.textContent = 'Verify & Access';
+  }
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────────────────
@@ -100,13 +153,16 @@ async function renderBusinessInfo() {
     contentArray.forEach(i => content[i.key] = i.value);
   }
   const v = (key, def = '') => content[key] !== undefined ? content[key] : def;
-  
-  const bName = v('business_name', "Avellano's Beach Hut");
-  const bTag = v('business_tag', "VLKN");
-  const bLoc = v('business_location', "Zambales, Philippines");
-  const bEmail = v('business_email', "hello@avellanos.com");
+
+  const bName = v('business_name', "Beach Name");
+  const bTag = v('business_tag', "----");
+  // Sync admin browser tab title with the current business name
+  document.title = bName + ' \u2013 Admin Panel';
+  const bLoc = v('business_location', "Province, Philippines");
+  const bEmail = v('business_email', "sample@email.com");
   const bPhone = v('business_phone', "+63 912 345 6789");
   const bCoords = v('business_coords', '');
+  const bGmapsUrl = v('business_gmaps_url', '');
 
   const html = `
     <div class="card" style="margin-bottom:2rem;">
@@ -123,6 +179,7 @@ async function renderBusinessInfo() {
         <div class="form-group"><label>Email Address</label><div style="font-weight:500; padding-top:0.5rem;">${bEmail}</div></div>
         <div class="form-group"><label>Mobile Phone</label><div style="font-weight:500; padding-top:0.5rem;">${bPhone}</div></div>
         <div class="form-group" style="grid-column:1/-1;"><label>Google Maps Coordinates</label><div style="font-weight:500; padding-top:0.5rem;">${bCoords || '<span style="color:var(--text-muted); font-style:italic;">Not set</span>'}</div></div>
+        <div class="form-group"><label>Google Maps Review Link</label><div style="font-weight:500; padding-top:0.5rem; color:var(--aqua); text-decoration:underline; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; max-width: 240px;" title="${bGmapsUrl}">${bGmapsUrl || '<span style="color:var(--text-muted); font-style:italic;">Not set</span>'}</div></div>
       </div>
       <div id="bizEdit" style="display:none; grid-template-columns:1fr 1fr; gap:1.5rem;">
         <div class="form-group"><label>Business Name</label><input type="text" id="biz_name" value="${bName}"></div>
@@ -137,6 +194,10 @@ async function renderBusinessInfo() {
         <div class="form-group" style="grid-column:1/-1;">
           <label>GMaps Coordinates <span style="font-weight:400; color:var(--text-muted); font-style:italic;">(Lat, Lng — e.g. 15.1234, 119.5678)</span></label>
           <input type="text" id="biz_coords" value="${bCoords}" placeholder="e.g. 15.1234, 119.5678">
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label>Google Maps Review Link <span style="font-weight:400; color:var(--text-muted); font-style:italic;">(Used for syncing real guest reviews)</span></label>
+          <input type="text" id="biz_gmaps_url" value="${bGmapsUrl}" placeholder="https://www.google.com/maps/place/...">
         </div>
       </div>
     </div>
@@ -159,7 +220,7 @@ async function renderBusinessInfo() {
   renderBizDocs();
 }
 
-window.toggleBizEdit = function(editing) {
+window.toggleBizEdit = function (editing) {
   if (editing) {
     document.getElementById('bizDisplay').style.display = 'none';
     document.getElementById('bizEdit').style.display = 'grid';
@@ -173,7 +234,7 @@ window.toggleBizEdit = function(editing) {
 };
 
 let locTimeout;
-window.fetchLocationSuggestions = function(query) {
+window.fetchLocationSuggestions = function (query) {
   const sug = document.getElementById('locSuggestions');
   if (!query || query.length < 3) {
     sug.style.display = 'none';
@@ -211,10 +272,10 @@ document.addEventListener('click', (e) => {
   }
 });
 
-window.saveBizInfo = async function() {
+window.saveBizInfo = async function () {
   const btn = document.querySelector('#bizActions .btn-primary');
   btn.disabled = true; btn.textContent = 'Saving...';
-  
+
   const coordsEl = document.getElementById('biz_coords');
   const updates = {
     business_name: document.getElementById('biz_name').value,
@@ -223,12 +284,13 @@ window.saveBizInfo = async function() {
     business_email: document.getElementById('biz_email').value,
     business_phone: document.getElementById('biz_phone').value,
     business_coords: coordsEl ? coordsEl.value.trim() : '',
+    business_gmaps_url: document.getElementById('biz_gmaps_url') ? document.getElementById('biz_gmaps_url').value.trim() : '',
   };
-  
+
   if (updates.business_name) {
     updates.nav_brand = updates.business_name;
     updates.footer_copy = '© ' + new Date().getFullYear() + ' ' + updates.business_name + ' · All rights reserved.';
-    
+
     const words = updates.business_name.split(' ');
     if (words.length > 1) {
       const first = words.shift();
@@ -262,6 +324,20 @@ window.saveBizInfo = async function() {
     }));
     await ABHC_DB.saveSiteContent(items);
     toast('Business profile updated securely.', 'success');
+    // Update the admin browser tab title immediately
+    if (updates.business_name) {
+      document.title = updates.business_name + ' \u2013 Admin Panel';
+      const words = updates.business_name.split(' ');
+      const logoEl = document.getElementById('sidebarLogoMain');
+      if (logoEl) {
+        if (words.length > 1) {
+          const first = words.shift();
+          logoEl.innerHTML = `${first} <span>${words.join(' ')}</span>`;
+        } else {
+          logoEl.innerHTML = updates.business_name;
+        }
+      }
+    }
     renderBusinessInfo();
   } catch (err) {
     toast('Error: ' + err.message, 'error');
@@ -269,7 +345,7 @@ window.saveBizInfo = async function() {
   }
 };
 
-window.renderBizDocs = async function() {
+window.renderBizDocs = async function () {
   const grid = document.getElementById('bizDocsGrid');
   grid.innerHTML = '<div style="color:var(--text-muted); font-size:0.9rem;">Loading documents...</div>';
   try {
@@ -295,21 +371,21 @@ window.renderBizDocs = async function() {
   }
 };
 
-window.handleDocUpload = async function(e) {
+window.handleDocUpload = async function (e) {
   const file = e.target.files[0];
   if (!file) return;
   e.target.value = ''; // reset
-  
+
   toast('Uploading document...', 'info');
   try {
     const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const filename = `${Date.now()}_${safeName}`;
-    
+
     const { data: uploadData, error: uploadErr } = await supabase.storage.from('business_docs').upload(filename, file);
     if (uploadErr) throw uploadErr;
-    
+
     const { data: urlData } = supabase.storage.from('business_docs').getPublicUrl(filename);
-    
+
     const { error: dbErr } = await supabase.from('business_docs').insert([{
       filename: file.name,
       file_url: urlData.publicUrl,
@@ -317,7 +393,7 @@ window.handleDocUpload = async function(e) {
       uploaded_by: window._currentStaffName || 'Admin'
     }]);
     if (dbErr) throw dbErr;
-    
+
     toast('Document uploaded successfully!', 'success');
     renderBizDocs();
   } catch (err) {
@@ -325,7 +401,7 @@ window.handleDocUpload = async function(e) {
   }
 };
 
-window.deleteBizDoc = async function(id) {
+window.deleteBizDoc = async function (id) {
   if (!confirm('Are you sure you want to delete this document?')) return;
   try {
     await supabase.from('business_docs').delete().eq('id', id);
@@ -951,7 +1027,67 @@ async function saveBooking() {
     closeModal('bookingModal');
     renderBookingsTable();
     renderDashboard();
+
+    // ── AUTOMATIC EMAIL CONFIRMATION (Simulated) ──
+    if (payload.status === 'confirmed') {
+      const emailHtml = generateConfirmationEmail({ ...payload, ref: editId ? (b.ref || editId) : 'NEW-BOOKING' });
+      console.log("Confirmation Email Generated:", emailHtml);
+      toast('Confirmation email prepared and "sent" to guest. ✅', 'info');
+    }
+
   } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
+function generateConfirmationEmail(b) {
+  const bizName = _seData['business_name'] || "the Resort";
+  const mapsLink = _seData['business_gmaps_url'] || "#";
+  const rules = _seData['house_rules'] || "Please follow all resort guidelines for a safe stay.";
+  const roomName = b.roomName || "Your Room";
+  const guestName = b.guestName || "Valued Guest";
+  const ciStr = fmt(b.checkIn);
+  const coStr = fmt(b.checkOut);
+  
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+      <div style="background: #0D6E6A; color: white; padding: 2.5rem 2rem; text-align: center;">
+        <h1 style="margin: 0; font-size: 1.8rem; letter-spacing: 1px;">Stay Confirmed!</h1>
+        <p style="margin: 0.6rem 0 0; opacity: 0.85; font-size: 1.1rem;">We're getting everything ready for you at ${bizName}.</p>
+      </div>
+      <div style="padding: 2.5rem; color: #334155; line-height: 1.7;">
+        <p style="font-size: 1.1rem;">Warm greetings, <strong>${guestName}</strong>!</p>
+        <p>Your booking for <strong>${roomName}</strong> is officially confirmed. We are thrilled to have you as our guest.</p>
+        
+        <div style="background: #F8FAFC; padding: 1.5rem; border-radius: 10px; margin: 2rem 0; border: 1px solid #E2E8F0;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.6rem; border-bottom: 1px solid #EDF2F7; padding-bottom: 0.6rem;">
+            <span style="color: #64748B;">Reference No.</span> <strong style="color: #0D6E6A;">${b.ref}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.6rem; border-bottom: 1px solid #EDF2F7; padding-bottom: 0.6rem;">
+            <span style="color: #64748B;">Check-In</span> <strong>${ciStr}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #64748B;">Check-Out</span> <strong>${coStr}</strong>
+          </div>
+        </div>
+
+        <h3 style="color: #0D6E6A; margin-top: 2rem; display: flex; align-items: center; gap: 0.5rem;">🏠 Guest House Rules</h3>
+        <div style="background: #FFF8F5; padding: 1.5rem; border-radius: 10px; border-left: 5px solid #FF7043; font-size: 0.95rem; color: #4A5568;">
+          <div style="white-space: pre-wrap;">${rules}</div>
+        </div>
+
+        <div style="text-align: center; margin: 3rem 0;">
+          <a href="${mapsLink}" style="background: #FF7043; color: white; padding: 1.2rem 2.5rem; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 1rem; display: inline-block; box-shadow: 0 4px 15px rgba(255,112,67,0.3);">📍 Navigate to Resort</a>
+        </div>
+        
+        <div style="text-align: center; padding-top: 1rem; border-top: 1px solid #E2E8F0;">
+          <p style="font-size: 0.9rem; color: #64748B;">Need help with your trip?</p>
+          <a href="${window.location.origin}" style="color: #0D6E6A; font-weight: 600; text-decoration: none; border-bottom: 2px solid #0D6E6A; padding-bottom: 2px;">Chat with our Concierge</a>
+        </div>
+      </div>
+      <div style="background: #F1F5F9; padding: 1.5rem; text-align: center; font-size: 0.75rem; color: #94A3B8;">
+        Sent with ☀️ from ${bizName}
+      </div>
+    </div>
+  `;
 }
 
 async function editBooking(id) {
@@ -1204,7 +1340,7 @@ async function renderRoomCards() {
   const rooms = await ABHC_DB.getRooms();
   document.getElementById('roomsGrid').innerHTML = rooms.map(r => `
     <div class="card" style="transition:all 0.3s;">
-      <div style="border-radius:10px;overflow:hidden;margin-bottom:1rem;height:120px;background:var(--sand-mid);">
+      <div style="border-radius:10px;overflow:hidden;margin-bottom:1rem;height:200px;background:var(--sand-mid);">
         ${r.img
       ? `<img src="${r.img}" alt="${r.name}" style="width:100%;height:100%;object-fit:cover;display:block;">`
       : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.8rem;">No photo</div>`}
@@ -1410,7 +1546,8 @@ async function addRepair() {
   const desc = document.getElementById('repairDesc').value.trim();
   const amt = +document.getElementById('repairAmt').value;
   const date = document.getElementById('repairDate').value;
-  const cat = document.getElementById('repairCat').value;
+  let cat = document.getElementById('repairCat').value;
+  if (cat === 'Other') cat = document.getElementById('repairOtherText').value.trim() || 'Other';
   if (!desc || !amt || !date) { toast('Description, amount and date are required.', 'error'); return; }
   try {
     await ABHC_DB.addRepair({ ref, description: desc, amount: amt, date, category: cat });
@@ -1475,7 +1612,6 @@ async function removeFlaggedGuest(id) {
 }
 
 // ── AVAILABILITY CALENDAR ─────────────────────────────────────────────────────
-// ── AVAILABILITY CALENDAR ─────────────────────────────────────────────────────
 async function renderAdminCal() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const [rooms, bookings] = await Promise.all([ABHC_DB.getRooms(), ABHC_DB.getBookings()]);
@@ -1524,7 +1660,7 @@ async function renderAdminCal() {
       const isToday = ds === fmtD(today);
 
       html += `
-        <div style="min-height:80px; display:flex; flex-direction:column; gap:4px; border-radius:8px; padding:4px; ${isToday ? 'background:var(--aqua-light); outline:1px solid var(--aqua);' : ''}">
+        <div onclick="openDayAvailabilityModal('${ds}')" style="min-height:80px; display:flex; flex-direction:column; gap:4px; border-radius:8px; padding:4px; cursor:pointer; transition:background 0.2s; ${isToday ? 'background:var(--aqua-light); outline:1px solid var(--aqua);' : ''}" onmouseover="if(!${isToday}) this.style.background='var(--sand-light)'" onmouseout="if(!${isToday}) this.style.background='transparent'">
           <div style="text-align:center; font-size:0.8rem; font-weight:600; ${isPast ? 'color:#ccc;' : 'color:var(--text-dark);'}">${d}</div>
           <div style="display:flex; flex-direction:column; gap:2px;">
             ${active.map(r => {
@@ -1564,6 +1700,82 @@ async function renderAdminCal() {
   });
 
   document.getElementById('adminCalWrap').innerHTML = html;
+}
+
+window.openDayAvailabilityModal = async function(ds) {
+  const date = parseD(ds);
+  const dateStr = date.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' });
+  document.getElementById('dayAvailTitle').textContent = `Availability for ${dateStr}`;
+  const content = document.getElementById('dayAvailContent');
+  content.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--text-muted);">Calculating availability...</div>';
+  openModal('dayAvailabilityModal');
+
+  try {
+    const [rooms, bookings] = await Promise.all([ABHC_DB.getRooms(), ABHC_DB.getBookings()]);
+    const activeRooms = rooms.filter(r => r.active);
+    const dayBookings = bookings.filter(b => {
+      if (b.status === 'cancelled') return false;
+      const ci = new Date(b.check_in || b.checkIn).setHours(0, 0, 0, 0);
+      const co = new Date(b.check_out || b.checkOut).setHours(0, 0, 0, 0);
+      const target = date.getTime();
+      return target >= ci && target < co;
+    });
+
+    let html = '';
+    activeRooms.forEach(room => {
+      const roomBookings = dayBookings.filter(b => (b.room_id || b.roomId) === room.id);
+      const bookedQty = roomBookings.reduce((sum, b) => sum + (b.room_quantity || 1), 0);
+      const totalQty = room.quantity || 1;
+      const availableQty = Math.max(0, totalQty - bookedQty);
+      
+      // Determine which units are taken
+      let takenUnits = [];
+      roomBookings.forEach(b => {
+        const req = b.special_req || b.specialReq || '';
+        const match = req.match(/\[Preferred Unit:\s*(.*?)\]/);
+        if (match) takenUnits.push(match[1]);
+      });
+      
+      const allUnits = room.unitIds || [];
+      const availUnits = allUnits.filter(u => !takenUnits.includes(u)).slice(0, availableQty);
+
+      html += `
+        <div class="card" style="margin-bottom:1rem; border-left:4px solid ${availableQty > 0 ? 'var(--success)' : 'var(--danger)'};">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.8rem;">
+            <div>
+              <h4 style="margin:0; font-size:1.05rem;">${room.name}</h4>
+              <div style="font-size:0.8rem; color:var(--text-muted);">${room.cap}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:700; font-size:1.1rem; color:${availableQty > 0 ? 'var(--success)' : 'var(--danger)'};">${availableQty} / ${totalQty} Available</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">${bookedQty} Unit${bookedQty !== 1 ? 's' : ''} Occupied</div>
+            </div>
+          </div>
+          
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div>
+              <div style="font-size:0.75rem; font-weight:600; text-transform:uppercase; color:var(--text-muted); margin-bottom:0.4rem;">Occupied Units / Guests</div>
+              ${roomBookings.length > 0 ? roomBookings.map(b => {
+                const req = b.special_req || b.specialReq || '';
+                const match = req.match(/\[Preferred Unit:\s*(.*?)\]/);
+                const unit = match ? `<span style="background:var(--sand-mid); padding:2px 6px; border-radius:4px; margin-right:4px; font-family:monospace;">${match[1]}</span>` : '';
+                return `<div style="font-size:0.85rem; margin-bottom:0.3rem;">${unit}${b.guest_name || b.guestName} <span style="font-size:0.75rem; color:var(--text-muted);">(${b.ref})</span></div>`;
+              }).join('') : '<div style="font-size:0.82rem; color:var(--text-muted); font-style:italic;">No units occupied</div>'}
+            </div>
+            <div>
+              <div style="font-size:0.75rem; font-weight:600; text-transform:uppercase; color:var(--text-muted); margin-bottom:0.4rem;">Available Units</div>
+              <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                ${availUnits.length > 0 ? availUnits.map(u => `<span style="background:var(--aqua-light); color:var(--aqua-deep); font-size:0.8rem; padding:0.2rem 0.6rem; border-radius:4px; font-family:monospace; font-weight:600;">${u}</span>`).join('') : (availableQty > 0 ? '<span style="font-size:0.82rem; color:var(--text-muted);">Any available unit</span>' : '<span style="font-size:0.82rem; color:var(--danger); font-weight:500;">SOLD OUT</span>')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    content.innerHTML = html || '<div style="padding:2rem; text-align:center; color:var(--text-muted);">No active rooms found.</div>';
+  } catch (err) {
+    content.innerHTML = `<div style="padding:2rem; text-align:center; color:var(--sunset);">Error loading availability: ${err.message}</div>`;
+  }
 }
 
 // ── EXPORT CSV ────────────────────────────────────────────────────────────────
@@ -2142,7 +2354,48 @@ async function addCsNote() {
 }
 
 // ── SITE EDITOR (Visual WYSIWYG) ──────────────────────────────────────────────
-let _seData = {}; // live CMS data map
+_seData = {}; // Site Editor content cache reset
+
+// ── CUSTOM CONFIRM MODAL ───────────────────────────────────────────────────
+function showConfirmModal(title, message, icon = '⚠️') {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('confirmModal');
+    const titleEl = document.getElementById('confirmTitle');
+    const msgEl = document.getElementById('confirmMessage');
+    const iconEl = document.getElementById('confirmIcon');
+    const okBtn = document.getElementById('confirmOkBtn');
+    const cancelBtn = document.getElementById('confirmCancelBtn');
+
+    if (!modal || !titleEl || !msgEl || !iconEl || !okBtn || !cancelBtn) {
+      // Fallback if modal elements missing
+      resolve(confirm(message));
+      return;
+    }
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    iconEl.textContent = icon;
+
+    modal.classList.add('open');
+
+    const handleConfirm = () => {
+      cleanup();
+      resolve(true);
+    };
+    const handleCancel = () => {
+      cleanup();
+      resolve(false);
+    };
+    const cleanup = () => {
+      modal.classList.remove('open');
+      okBtn.removeEventListener('click', handleConfirm);
+      cancelBtn.removeEventListener('click', handleCancel);
+    };
+
+    okBtn.addEventListener('click', handleConfirm);
+    cancelBtn.addEventListener('click', handleCancel);
+  });
+}
 
 function seE(key, tag = 'span') {
   // Returns an inline-editable element with the current CMS value or HTML default
@@ -2151,61 +2404,77 @@ function seE(key, tag = 'span') {
 }
 
 const SITE_EDITOR_SCHEMA = [
-  { section: 'hero', label: 'Hero Section', fields: [
-    { key: 'hero_badge', label: 'Badge Text', type: 'text', placeholder: '✦ Beachfront Paradise · Philippines ✦' },
-    { key: 'hero_title', label: 'Main Title (HTML)', type: 'text', placeholder: "Avellano's<br><em>Beach Hut</em> Cottage" },
-    { key: 'hero_subtitle', label: 'Subtitle', type: 'textarea', placeholder: 'Where the ocean meets endless sunsets...' },
-  ]},
-  { section: 'perks', label: 'Perks Bar (5 Items)', fields: [
-    { key: 'perk_1_icon', label: 'Perk 1 Icon', type: 'icon' }, { key: 'perk_1_title', label: 'Perk 1 Title', type: 'text' }, { key: 'perk_1_desc', label: 'Perk 1 Description', type: 'text' },
-    { key: 'perk_2_icon', label: 'Perk 2 Icon', type: 'icon' }, { key: 'perk_2_title', label: 'Perk 2 Title', type: 'text' }, { key: 'perk_2_desc', label: 'Perk 2 Description', type: 'text' },
-    { key: 'perk_3_icon', label: 'Perk 3 Icon', type: 'icon' }, { key: 'perk_3_title', label: 'Perk 3 Title', type: 'text' }, { key: 'perk_3_desc', label: 'Perk 3 Description', type: 'text' },
-    { key: 'perk_4_icon', label: 'Perk 4 Icon', type: 'icon' }, { key: 'perk_4_title', label: 'Perk 4 Title', type: 'text' }, { key: 'perk_4_desc', label: 'Perk 4 Description', type: 'text' },
-    { key: 'perk_5_icon', label: 'Perk 5 Icon', type: 'icon' }, { key: 'perk_5_title', label: 'Perk 5 Title', type: 'text' }, { key: 'perk_5_desc', label: 'Perk 5 Description', type: 'text' },
-  ]},
-  { section: 'booking', label: 'Booking Section', fields: [
-    { key: 'booking_label', label: 'Section Label', type: 'text' },
-    { key: 'booking_title', label: 'Section Title (HTML)', type: 'text' },
-    { key: 'booking_subtitle', label: 'Subtitle', type: 'textarea' },
-  ]},
-  { section: 'rooms', label: 'Rooms Section', fields: [
-    { key: 'rooms_label', label: 'Section Label', type: 'text' },
-    { key: 'rooms_title', label: 'Section Title (HTML)', type: 'text' },
-    { key: 'rooms_subtitle', label: 'Subtitle', type: 'textarea' },
-  ]},
-  { section: 'activities', label: 'Activities Section', fields: [
-    { key: 'activities_label', label: 'Section Label', type: 'text' },
-    { key: 'activities_title', label: 'Section Title (HTML)', type: 'text' },
-    { key: 'activities_subtitle', label: 'Subtitle', type: 'textarea' },
-    { key: 'act_1_icon', label: 'Activity 1 Icon', type: 'icon' }, { key: 'act_1_name', label: 'Activity 1 Name', type: 'text' }, { key: 'act_1_desc', label: 'Activity 1 Desc', type: 'text' },
-    { key: 'act_2_icon', label: 'Activity 2 Icon', type: 'icon' }, { key: 'act_2_name', label: 'Activity 2 Name', type: 'text' }, { key: 'act_2_desc', label: 'Activity 2 Desc', type: 'text' },
-    { key: 'act_3_icon', label: 'Activity 3 Icon', type: 'icon' }, { key: 'act_3_name', label: 'Activity 3 Name', type: 'text' }, { key: 'act_3_desc', label: 'Activity 3 Desc', type: 'text' },
-    { key: 'act_4_icon', label: 'Activity 4 Icon', type: 'icon' }, { key: 'act_4_name', label: 'Activity 4 Name', type: 'text' }, { key: 'act_4_desc', label: 'Activity 4 Desc', type: 'text' },
-    { key: 'act_5_icon', label: 'Activity 5 Icon', type: 'icon' }, { key: 'act_5_name', label: 'Activity 5 Name', type: 'text' }, { key: 'act_5_desc', label: 'Activity 5 Desc', type: 'text' },
-    { key: 'act_6_icon', label: 'Activity 6 Icon', type: 'icon' }, { key: 'act_6_name', label: 'Activity 6 Name', type: 'text' }, { key: 'act_6_desc', label: 'Activity 6 Desc', type: 'text' },
-    { key: 'act_7_icon', label: 'Activity 7 Icon', type: 'icon' }, { key: 'act_7_name', label: 'Activity 7 Name', type: 'text' }, { key: 'act_7_desc', label: 'Activity 7 Desc', type: 'text' },
-    { key: 'act_8_icon', label: 'Activity 8 Icon', type: 'icon' }, { key: 'act_8_name', label: 'Activity 8 Name', type: 'text' }, { key: 'act_8_desc', label: 'Activity 8 Desc', type: 'text' },
-  ]},
-  { section: 'dining', label: 'Dining Section', fields: [
-    { key: 'dining_label', label: 'Section Label', type: 'text' },
-    { key: 'dining_title', label: 'Section Title (HTML)', type: 'text' },
-    { key: 'dining_subtitle', label: 'Subtitle', type: 'textarea' },
-    { key: 'dining_1_name', label: 'Restaurant 1 Name', type: 'text' }, { key: 'dining_1_type', label: 'Restaurant 1 Type', type: 'text' },
-    { key: 'dining_1_desc', label: 'Restaurant 1 Description', type: 'textarea' }, { key: 'dining_1_hours', label: 'Restaurant 1 Hours', type: 'text' },
-    { key: 'dining_2_name', label: 'Restaurant 2 Name', type: 'text' }, { key: 'dining_2_type', label: 'Restaurant 2 Type', type: 'text' },
-    { key: 'dining_2_desc', label: 'Restaurant 2 Description', type: 'textarea' }, { key: 'dining_2_hours', label: 'Restaurant 2 Hours', type: 'text' },
-  ]},
-  { section: 'contact', label: 'Contact Information', fields: [
-    { key: 'contact_phone', label: 'Phone Number', type: 'text' },
-    { key: 'contact_email', label: 'Email Address', type: 'text' },
-    { key: 'contact_location', label: 'Location', type: 'text' },
-    { key: 'contact_hours', label: 'Front Desk Hours', type: 'text' },
-  ]},
-  { section: 'branding', label: 'Branding & Footer', fields: [
-    { key: 'nav_brand', label: 'Navigation Brand Name (HTML)', type: 'text' },
-    { key: 'footer_brand', label: 'Footer Brand Name (HTML)', type: 'text' },
-    { key: 'footer_copy', label: 'Footer Copyright Text', type: 'text' },
-  ]},
+  {
+    section: 'hero', label: 'Hero Section', fields: [
+      { key: 'hero_badge', label: 'Badge Text', type: 'text', placeholder: '✦ Beachfront Paradise · Philippines ✦' },
+      { key: 'hero_title', label: 'Main Title (HTML)', type: 'text', placeholder: "Avellano's<br><em>Beach Hut</em> Cottage" },
+      { key: 'hero_subtitle', label: 'Subtitle', type: 'textarea', placeholder: 'Where the ocean meets endless sunsets...' },
+    ]
+  },
+  {
+    section: 'perks', label: 'Perks Bar (5 Items)', fields: [
+      { key: 'perk_1_icon', label: 'Perk 1 Icon', type: 'icon' }, { key: 'perk_1_title', label: 'Perk 1 Title', type: 'text' }, { key: 'perk_1_desc', label: 'Perk 1 Description', type: 'text' },
+      { key: 'perk_2_icon', label: 'Perk 2 Icon', type: 'icon' }, { key: 'perk_2_title', label: 'Perk 2 Title', type: 'text' }, { key: 'perk_2_desc', label: 'Perk 2 Description', type: 'text' },
+      { key: 'perk_3_icon', label: 'Perk 3 Icon', type: 'icon' }, { key: 'perk_3_title', label: 'Perk 3 Title', type: 'text' }, { key: 'perk_3_desc', label: 'Perk 3 Description', type: 'text' },
+      { key: 'perk_4_icon', label: 'Perk 4 Icon', type: 'icon' }, { key: 'perk_4_title', label: 'Perk 4 Title', type: 'text' }, { key: 'perk_4_desc', label: 'Perk 4 Description', type: 'text' },
+      { key: 'perk_5_icon', label: 'Perk 5 Icon', type: 'icon' }, { key: 'perk_5_title', label: 'Perk 5 Title', type: 'text' }, { key: 'perk_5_desc', label: 'Perk 5 Description', type: 'text' },
+    ]
+  },
+  {
+    section: 'booking', label: 'Booking Section', fields: [
+      { key: 'booking_label', label: 'Section Label', type: 'text' },
+      { key: 'booking_title', label: 'Section Title (HTML)', type: 'text' },
+      { key: 'booking_subtitle', label: 'Subtitle', type: 'textarea' },
+    ]
+  },
+  {
+    section: 'rooms', label: 'Rooms Section', fields: [
+      { key: 'rooms_label', label: 'Section Label', type: 'text' },
+      { key: 'rooms_title', label: 'Section Title (HTML)', type: 'text' },
+      { key: 'rooms_subtitle', label: 'Subtitle', type: 'textarea' },
+    ]
+  },
+  {
+    section: 'activities', label: 'Activities Section', fields: [
+      { key: 'activities_label', label: 'Section Label', type: 'text' },
+      { key: 'activities_title', label: 'Section Title (HTML)', type: 'text' },
+      { key: 'activities_subtitle', label: 'Subtitle', type: 'textarea' },
+      { key: 'act_1_icon', label: 'Activity 1 Icon', type: 'icon' }, { key: 'act_1_name', label: 'Activity 1 Name', type: 'text' }, { key: 'act_1_desc', label: 'Activity 1 Desc', type: 'text' },
+      { key: 'act_2_icon', label: 'Activity 2 Icon', type: 'icon' }, { key: 'act_2_name', label: 'Activity 2 Name', type: 'text' }, { key: 'act_2_desc', label: 'Activity 2 Desc', type: 'text' },
+      { key: 'act_3_icon', label: 'Activity 3 Icon', type: 'icon' }, { key: 'act_3_name', label: 'Activity 3 Name', type: 'text' }, { key: 'act_3_desc', label: 'Activity 3 Desc', type: 'text' },
+      { key: 'act_4_icon', label: 'Activity 4 Icon', type: 'icon' }, { key: 'act_4_name', label: 'Activity 4 Name', type: 'text' }, { key: 'act_4_desc', label: 'Activity 4 Desc', type: 'text' },
+      { key: 'act_5_icon', label: 'Activity 5 Icon', type: 'icon' }, { key: 'act_5_name', label: 'Activity 5 Name', type: 'text' }, { key: 'act_5_desc', label: 'Activity 5 Desc', type: 'text' },
+      { key: 'act_6_icon', label: 'Activity 6 Icon', type: 'icon' }, { key: 'act_6_name', label: 'Activity 6 Name', type: 'text' }, { key: 'act_6_desc', label: 'Activity 6 Desc', type: 'text' },
+      { key: 'act_7_icon', label: 'Activity 7 Icon', type: 'icon' }, { key: 'act_7_name', label: 'Activity 7 Name', type: 'text' }, { key: 'act_7_desc', label: 'Activity 7 Desc', type: 'text' },
+      { key: 'act_8_icon', label: 'Activity 8 Icon', type: 'icon' }, { key: 'act_8_name', label: 'Activity 8 Name', type: 'text' }, { key: 'act_8_desc', label: 'Activity 8 Desc', type: 'text' },
+    ]
+  },
+  {
+    section: 'dining', label: 'Dining Section', fields: [
+      { key: 'dining_label', label: 'Section Label', type: 'text' },
+      { key: 'dining_title', label: 'Section Title (HTML)', type: 'text' },
+      { key: 'dining_subtitle', label: 'Subtitle', type: 'textarea' },
+      { key: 'dining_1_name', label: 'Restaurant 1 Name', type: 'text' }, { key: 'dining_1_type', label: 'Restaurant 1 Type', type: 'text' },
+      { key: 'dining_1_desc', label: 'Restaurant 1 Description', type: 'textarea' }, { key: 'dining_1_hours', label: 'Restaurant 1 Hours', type: 'text' },
+      { key: 'dining_2_name', label: 'Restaurant 2 Name', type: 'text' }, { key: 'dining_2_type', label: 'Restaurant 2 Type', type: 'text' },
+      { key: 'dining_2_desc', label: 'Restaurant 2 Description', type: 'textarea' }, { key: 'dining_2_hours', label: 'Restaurant 2 Hours', type: 'text' },
+    ]
+  },
+  {
+    section: 'contact', label: 'Contact Information', fields: [
+      { key: 'contact_phone', label: 'Phone Number', type: 'text' },
+      { key: 'contact_email', label: 'Email Address', type: 'text' },
+      { key: 'contact_location', label: 'Location', type: 'text' },
+      { key: 'contact_hours', label: 'Front Desk Hours', type: 'text' },
+    ]
+  },
+  {
+    section: 'branding', label: 'Branding & Footer', fields: [
+      { key: 'nav_brand', label: 'Navigation Brand Name (HTML)', type: 'text' },
+      { key: 'footer_brand', label: 'Footer Brand Name (HTML)', type: 'text' },
+      { key: 'footer_copy', label: 'Footer Copyright Text', type: 'text' },
+    ]
+  },
 ];
 
 async function renderSiteEditor() {
@@ -2242,17 +2511,41 @@ async function renderSiteEditor() {
     <div class="form-group" style="margin-bottom:0; max-width:400px;">
       <label>Select a Visual Theme</label>
       <select class="se-theme-select" data-se-key="site_theme" onchange="document.documentElement.setAttribute('data-theme', this.value); if(window.refreshThemeAnimations) refreshThemeAnimations();">
-        <option value="ocean_sunset" ${v('site_theme','') === 'ocean_sunset' ? 'selected' : ''}>🌊 Ocean Sunset (Default - Aqua & Orange)</option>
-        <option value="boho_minimalist" ${v('site_theme','') === 'boho_minimalist' ? 'selected' : ''}>🌿 Boho Minimalist (Earthy - Dusty Sage & Terracotta)</option>
-        <option value="royal_gold" ${v('site_theme','') === 'royal_gold' ? 'selected' : ''}>✨ Royal Gold (Luxury - Onyx & Shimmering Gold)</option>
-        <option value="glass_ocean" ${v('site_theme','') === 'glass_ocean' ? 'selected' : ''}>🧊 Glass Ocean (Fresh - Translucent Blues & Purple)</option>
-        <option value="mediterranean_azure" ${v('site_theme','') === 'mediterranean_azure' ? 'selected' : ''}>🧿 Mediterranean Azure (Crisp - White & Deep Blue)</option>
-        <option value="tropical_canopy" ${v('site_theme','') === 'tropical_canopy' ? 'selected' : ''}>🌴 Tropical Canopy (Lush - Jungle Green & Mango)</option>
-        <option value="desert_oasis" ${v('site_theme','') === 'desert_oasis' ? 'selected' : ''}>🌵 Desert Oasis (Warm - Cactus Green & Blush)</option>
-        <option value="coastal_pearl" ${v('site_theme','') === 'coastal_pearl' ? 'selected' : ''}>🦪 Coastal Pearl (Elegant - Nautical Navy & Seafoam)</option>
-        <option value="volcanic_ash" ${v('site_theme','') === 'volcanic_ash' ? 'selected' : ''}>🌋 Volcanic Ash (Dramatic - Slate & Crimson)</option>
-        <option value="coral_flamingo" ${v('site_theme','') === 'coral_flamingo' ? 'selected' : ''}>🦩 Coral Flamingo (Vibrant - Mint & Pastel Pink)</option>
+        <option value="ocean_sunset" ${v('site_theme', '') === 'ocean_sunset' ? 'selected' : ''}>🌊 Ocean Sunset (Default - Aqua & Orange)</option>
+        <option value="boho_minimalist" ${v('site_theme', '') === 'boho_minimalist' ? 'selected' : ''}>🌿 Boho Minimalist (Earthy - Dusty Sage & Terracotta)</option>
+        <option value="royal_gold" ${v('site_theme', '') === 'royal_gold' ? 'selected' : ''}>✨ Royal Gold (Luxury - Onyx & Shimmering Gold)</option>
+        <option value="glass_ocean" ${v('site_theme', '') === 'glass_ocean' ? 'selected' : ''}>🧊 Glass Ocean (Fresh - Translucent Blues & Purple)</option>
+        <option value="mediterranean_azure" ${v('site_theme', '') === 'mediterranean_azure' ? 'selected' : ''}>🧿 Mediterranean Azure (Crisp - White & Deep Blue)</option>
+        <option value="tropical_canopy" ${v('site_theme', '') === 'tropical_canopy' ? 'selected' : ''}>🌴 Tropical Canopy (Lush - Jungle Green & Mango)</option>
+        <option value="desert_oasis" ${v('site_theme', '') === 'desert_oasis' ? 'selected' : ''}>🌵 Desert Oasis (Warm - Cactus Green & Blush)</option>
+        <option value="coastal_pearl" ${v('site_theme', '') === 'coastal_pearl' ? 'selected' : ''}>🦪 Coastal Pearl (Elegant - Nautical Navy & Seafoam)</option>
+        <option value="volcanic_ash" ${v('site_theme', '') === 'volcanic_ash' ? 'selected' : ''}>🌋 Volcanic Ash (Dramatic - Slate & Crimson)</option>
+        <option value="coral_flamingo" ${v('site_theme', '') === 'coral_flamingo' ? 'selected' : ''}>🦩 Coral Flamingo (Vibrant - Mint & Pastel Pink)</option>
       </select>
+    </div>
+  </div>
+
+  <!-- ── ADVANCED FEATURES & RULES ── -->
+  <div class="card" style="margin-bottom:1rem;">
+    <div class="card-title">⚙️ Advanced Features & Rules</div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem;">
+      <div>
+        <label style="display:block; margin-bottom:0.5rem; font-weight:600;">Hero Features</label>
+        <div style="display:flex; gap:1.5rem;">
+          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+            <input type="checkbox" onchange="_seData['weather_enabled'] = this.checked ? 'true' : 'false'" ${_seData['weather_enabled'] !== 'false' ? 'checked' : ''}> Live Weather
+          </label>
+          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+            <input type="checkbox" onchange="_seData['tide_enabled'] = this.checked ? 'true' : 'false'" ${_seData['tide_enabled'] === 'true' ? 'checked' : ''}> High Tide Info
+          </label>
+        </div>
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem;">These will appear in the Hero section based on your resort's coordinates.</p>
+      </div>
+      <div>
+        <label style="display:block; margin-bottom:0.5rem; font-weight:600;">House Rules (Auto-sync to KB)</label>
+        <textarea class="se-editable" data-se-key="house_rules" oninput="_seData['house_rules'] = this.value" placeholder="Enter resort policies..." style="width:100%; height:100px; padding:0.8rem; border-radius:8px; border:1.5px solid var(--sand-mid); font-family:var(--font-sans); font-size:0.85rem;">${_seData['house_rules'] || ''}</textarea>
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.3rem;">Rules entered here are automatically sent in confirmation emails and updated in the Knowledge Base.</p>
+      </div>
     </div>
   </div>
 
@@ -2262,25 +2555,22 @@ async function renderSiteEditor() {
     <div class="hero" style="position:relative; min-height:340px; border-radius:16px; overflow:hidden;">
       <div class="hero-bg"><div class="aurora"></div></div>
       <div class="hero-content" style="position:relative; z-index:2; padding:3rem 2rem;">
-        <span class="hero-badge se-editable" contenteditable="true" data-se-key="hero_badge">${v('hero_badge','✦ Beachfront Paradise · Philippines ✦')}</span>
-        <h1 class="se-editable" contenteditable="true" data-se-key="hero_title" style="font-size:2.2rem;">${v('hero_title',"Avellano's<br><em>Beach Hut</em> Cottage")}</h1>
-        <p class="hero-sub se-editable" contenteditable="true" data-se-key="hero_subtitle">${v('hero_subtitle','Where the ocean meets endless sunsets. A private beachfront retreat crafted for those who seek stillness, warmth, and the rhythm of the tides.')}</p>
+        <span class="hero-badge se-editable" contenteditable="true" data-se-key="hero_badge">${v('hero_badge', '✦ Beachfront Paradise · Philippines ✦')}</span>
+        <h1 class="se-editable" contenteditable="true" data-se-key="hero_title" style="font-size:2.2rem;">${v('hero_title', "Avellano's<br><em>Beach Hut</em> Cottage")}</h1>
+        <p class="hero-sub se-editable" contenteditable="true" data-se-key="hero_subtitle">${v('hero_subtitle', 'Where the ocean meets endless sunsets. A private beachfront retreat crafted for those who seek stillness, warmth, and the rhythm of the tides.')}</p>
       </div>
     </div>
   </div>
 
   <!-- ── PERKS ── -->
   <div class="se-section">
-    <div class="se-section-label">Perks Bar</div>
-    <div class="perks-bar" style="border-radius:16px; overflow:hidden;">
-      <div class="perks-grid">
-        ${[1,2,3,4,5].map(i => `
-          <div class="perk-item">
-            <span class="perk-icon se-editable" contenteditable="true" data-se-key="perk_${i}_icon">${v(`perk_${i}_icon`,['💰','🎁','🏊','🔄','🛎'][i-1])}</span>
-            <div class="perk-title se-editable" contenteditable="true" data-se-key="perk_${i}_title">${v(`perk_${i}_title`,['Best Rate Guarantee','Free Welcome Package','Early Check-In','Free Cancellation','Priority Service'][i-1])}</div>
-            <div class="perk-desc se-editable" contenteditable="true" data-se-key="perk_${i}_desc">${v(`perk_${i}_desc`,['Book direct, pay less than any OTA','Fruits & local wine on arrival','Complimentary when available','Up to 48 hours before arrival','Dedicated concierge attention'][i-1])}</div>
-          </div>
-        `).join('')}
+    <div class="se-section-label">Perks Bar Management</div>
+    <div class="perks-bar" style="border-radius:16px; overflow:hidden; padding:2rem 1rem;">
+      <div id="sePerksEditorGrid" class="perks-grid">
+        <!-- Rendered via JS loop -->
+      </div>
+      <div style="text-align:center; margin-top:1.5rem;">
+        <button class="btn btn-primary btn-sm" onclick="addPerkItem()">➕ Add Another Perk</button>
       </div>
     </div>
   </div>
@@ -2289,9 +2579,9 @@ async function renderSiteEditor() {
   <div class="se-section">
     <div class="se-section-label">Booking Section Header</div>
     <div style="text-align:center; padding:2rem; background:var(--sand); border-radius:16px;">
-      <span class="section-label se-editable" contenteditable="true" data-se-key="booking_label">${v('booking_label','Live Availability Calendar')}</span>
-      <h2 class="section-title se-editable" contenteditable="true" data-se-key="booking_title">${v('booking_title','Check <em>Availability</em> &amp; Book')}</h2>
-      <p class="section-sub se-editable" contenteditable="true" data-se-key="booking_subtitle" style="margin:0 auto;text-align:center;">${v('booking_subtitle','Click two dates on the calendar. Striped days are already booked. Room availability is checked per your dates in real time.')}</p>
+      <span class="section-label se-editable" contenteditable="true" data-se-key="booking_label">${v('booking_label', 'Live Availability Calendar')}</span>
+      <h2 class="section-title se-editable" contenteditable="true" data-se-key="booking_title">${v('booking_title', 'Check <em>Availability</em> &amp; Book')}</h2>
+      <p class="section-sub se-editable" contenteditable="true" data-se-key="booking_subtitle" style="margin:0 auto;text-align:center;">${v('booking_subtitle', 'Click two dates on the calendar. Striped days are already booked. Room availability is checked per your dates in real time.')}</p>
     </div>
   </div>
 
@@ -2299,80 +2589,117 @@ async function renderSiteEditor() {
   <div class="se-section">
     <div class="se-section-label">Rooms Section Header</div>
     <div style="text-align:center; padding:2rem; background:var(--bg); border-radius:16px; border:1px solid var(--sand-mid);">
-      <span class="section-label se-editable" contenteditable="true" data-se-key="rooms_label">${v('rooms_label','Accommodation')}</span>
-      <h2 class="section-title se-editable" contenteditable="true" data-se-key="rooms_title">${v('rooms_title','Your Home by the <em>Ocean</em>')}</h2>
-      <p class="section-sub se-editable" contenteditable="true" data-se-key="rooms_subtitle" style="margin:0 auto;text-align:center;">${v('rooms_subtitle','Each space dissolves the boundary between indoors and the sea.')}</p>
+      <span class="section-label se-editable" contenteditable="true" data-se-key="rooms_label">${v('rooms_label', 'Accommodation')}</span>
+      <h2 class="section-title se-editable" contenteditable="true" data-se-key="rooms_title">${v('rooms_title', 'Your Home by the <em>Ocean</em>')}</h2>
+      <p class="section-sub se-editable" contenteditable="true" data-se-key="rooms_subtitle" style="margin:0 auto;text-align:center;">${v('rooms_subtitle', 'Each space dissolves the boundary between indoors and the sea.')}</p>
     </div>
   </div>
 
   <!-- ── ACTIVITIES ── -->
   <div class="se-section">
-    <div class="se-section-label">Activities Section</div>
+    <div class="se-section-label">Activities Section & Management</div>
     <div class="activities-section" style="border-radius:16px; overflow:hidden; padding:2.5rem 1.5rem;">
       <div style="text-align:center; margin-bottom:1.5rem;">
-        <span class="section-label se-editable" contenteditable="true" data-se-key="activities_label">${v('activities_label','Things To Do')}</span>
-        <h2 class="section-title se-editable" contenteditable="true" data-se-key="activities_title" style="color:white;">${v('activities_title','Adventures for <em style=\"color:var(--aqua-light);\">Every Soul</em>')}</h2>
-        <p class="section-sub se-editable" contenteditable="true" data-se-key="activities_subtitle" style="margin:0 auto;text-align:center;color:rgba(255,255,255,0.75);">${v('activities_subtitle','From thrilling water sports to serene sunset yoga.')}</p>
+        <span class="section-label se-editable" contenteditable="true" data-se-key="activities_label">${v('activities_label', 'Things To Do')}</span>
+        <h2 class="section-title se-editable" contenteditable="true" data-se-key="activities_title" style="color:white;">${v('activities_title', 'Adventures for <em style=\"color:var(--aqua-light);\">Every Soul</em>')}</h2>
+        <p class="section-sub se-editable" contenteditable="true" data-se-key="activities_subtitle" style="margin:0 auto;text-align:center;color:rgba(255,255,255,0.75);">${v('activities_subtitle', 'From thrilling water sports to serene sunset yoga.')}</p>
       </div>
-      <div class="activities-grid">
-        ${[1,2,3,4,5,6,7,8].map(i => {
-          const defIcons = ['🤿','🏄','🚣','🧘','🎣','🌴','🍹','🌟'];
-          const defNames = ['Scuba Diving','Surfing','Island Hopping','Sunrise Yoga','Deep Sea Fishing','Mangrove Kayak','Cocktail Making','Stargazing Night'];
-          const defDescs = ['Explore vibrant coral reefs with certified instructors','Lessons and board rentals for all skill levels','Guided tours to hidden coves and sandbars','Daily beach sessions at dawn','Charter a boat and reel in the big catch','Kayak through serene mangrove forests','Mix tropical drinks at our beach bar','Guided astronomy on the open beach'];
-          return `<div class="activity-card">
-            <span class="activity-icon se-editable" contenteditable="true" data-se-key="act_${i}_icon">${v(`act_${i}_icon`, defIcons[i-1])}</span>
-            <div class="activity-name se-editable" contenteditable="true" data-se-key="act_${i}_name">${v(`act_${i}_name`, defNames[i-1])}</div>
-            <div class="activity-desc se-editable" contenteditable="true" data-se-key="act_${i}_desc">${v(`act_${i}_desc`, defDescs[i-1])}</div>
-          </div>`;
-        }).join('')}
+      
+      <div id="seActivitiesEditorGrid" class="activities-grid">
+        <!-- Rendered via JS loop -->
+      </div>
+
+      <div style="text-align:center; margin-top:2rem;">
+        <button class="btn btn-sunset" onclick="addActivityItem()">➕ Add Another Activity</button>
       </div>
     </div>
   </div>
 
   <!-- ── DINING ── -->
   <div class="se-section">
-    <div class="se-section-label">Dining Section</div>
+    <div class="se-section-label">Dining Section & Management</div>
     <div class="dining-section" style="border-radius:16px; overflow:hidden; padding:2.5rem 1.5rem;">
       <div style="text-align:center; margin-bottom:1.5rem;">
-        <span class="section-label se-editable" contenteditable="true" data-se-key="dining_label">${v('dining_label','Food &amp; Drinks')}</span>
-        <h2 class="section-title se-editable" contenteditable="true" data-se-key="dining_title">${v('dining_title','Flavors of the <em>Sea</em>')}</h2>
-        <p class="section-sub se-editable" contenteditable="true" data-se-key="dining_subtitle" style="margin:0 auto;text-align:center;">${v('dining_subtitle','Fresh catch, local spices, ocean breezes.')}</p>
+        <span class="section-label se-editable" contenteditable="true" data-se-key="dining_label">${v('dining_label', 'Food &amp; Drinks')}</span>
+        <h2 class="section-title se-editable" contenteditable="true" data-se-key="dining_title">${v('dining_title', 'Flavors of the <em>Sea</em>')}</h2>
+        <p class="section-sub se-editable" contenteditable="true" data-se-key="dining_subtitle" style="margin:0 auto;text-align:center;">${v('dining_subtitle', 'Fresh catch, local spices, ocean breezes.')}</p>
       </div>
-      <div class="dining-grid">
-        ${[1,2].map(i => {
-          const defN = ['Kainan sa Dagat','Halo-Halo Sunset Bar'][i-1];
-          const defT = ['Beachfront Restaurant','Beachside Bar & Grill'][i-1];
-          const defD = ['Fresh seafood grilled to order, Filipino classics with a gourmet twist, all with your toes in the sand.','Handcrafted cocktails, cold craft beers, and light bites. Watch the sky turn amber and gold.'][i-1];
-          const defH = ['Open: 7:00 AM – 10:00 PM','Open: 11:00 AM – Midnight'][i-1];
-          const cls = ['restaurant','bar'][i-1];
-          const emo = ['🍽️','🍹'][i-1];
-          return `<div class="dining-card">
-            <div class="dining-img ${cls}"><span class="dining-emoji">${emo}</span></div>
-            <div class="dining-body">
-              <h3 class="dining-name se-editable" contenteditable="true" data-se-key="dining_${i}_name">${v(`dining_${i}_name`, defN)}</h3>
-              <div class="dining-type se-editable" contenteditable="true" data-se-key="dining_${i}_type">${v(`dining_${i}_type`, defT)}</div>
-              <p class="dining-desc se-editable" contenteditable="true" data-se-key="dining_${i}_desc">${v(`dining_${i}_desc`, defD)}</p>
-              <p class="se-editable" contenteditable="true" data-se-key="dining_${i}_hours" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">${v(`dining_${i}_hours`, defH)}</p>
-            </div>
-          </div>`;
-        }).join('')}
+      
+      <div id="seDiningEditorGrid" class="dining-grid">
+        <!-- Rendered via JS loop -->
+      </div>
+
+      <div style="text-align:center; margin-top:2rem;">
+        <button class="btn btn-primary" onclick="addDiningItem()">➕ Add Another Dining Venue</button>
       </div>
     </div>
   </div>
 
   <!-- ── CONTACT ── -->
   <div class="se-section">
-    <div class="se-section-label">Contact Information</div>
+    <div class="se-section-label">Contact Information & Management</div>
     <div class="contact-section" style="border-radius:16px; overflow:hidden; padding:2.5rem 1.5rem;">
       <div style="text-align:center; margin-bottom:1.5rem;">
         <span class="section-label">Get In Touch</span>
         <h2 class="section-title" style="color:white;">We're Here to <em style="color:var(--sunset-light);">Help</em></h2>
       </div>
-      <div class="contact-grid">
-        <div class="contact-item"><span class="contact-icon">📞</span><div class="contact-label">Phone</div><div class="contact-value se-editable" contenteditable="true" data-se-key="contact_phone">${v('contact_phone','+63 912 345 6789')}</div></div>
-        <div class="contact-item"><span class="contact-icon">📧</span><div class="contact-label">Email</div><div class="contact-value se-editable" contenteditable="true" data-se-key="contact_email">${v('contact_email','hello@avellanos.ph')}</div></div>
-        <div class="contact-item"><span class="contact-icon">📍</span><div class="contact-label">Location</div><div class="contact-value se-editable" contenteditable="true" data-se-key="contact_location">${v('contact_location',"Avellano's Cove, Philippines")}</div></div>
-        <div class="contact-item"><span class="contact-icon">⏰</span><div class="contact-label">Front Desk</div><div class="contact-value se-editable" contenteditable="true" data-se-key="contact_hours">${v('contact_hours','24 / 7')}</div></div>
+      
+      <div id="seContactEditorGrid" class="contact-grid">
+        <!-- Rendered via JS loop -->
+      </div>
+
+      <div style="text-align:center; margin-top:2rem;">
+        <button class="btn btn-primary" onclick="addContactItem()" style="background:white; color:var(--aqua-deep);">➕ Add Contact Method / Social Media</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── REVIEWS ── -->
+  <div class="se-section">
+    <div class="se-section-label">Guest Reviews Management</div>
+    <div class="reviews-section" style="border-radius:16px; overflow:hidden; padding:2.5rem 1.5rem; background:white;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+        <div>
+           <span class="section-label se-editable" contenteditable="true" data-se-key="reviews_label">${v('reviews_label', 'Guest Stories')}</span>
+           <h2 class="section-title se-editable" contenteditable="true" data-se-key="reviews_title">${v('reviews_title', 'Words from Our <em>Travelers</em>')}</h2>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="syncGoogleReviews()" id="btnSyncReviews">🔄 Sync from Google</button>
+      </div>
+      
+      <div id="seReviewsEditorGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:1.5rem;">
+        <!-- Rendered via JS loop -->
+      </div>
+
+      <div style="text-align:center; margin-top:2rem;">
+        <button class="btn btn-ghost btn-sm" onclick="addReviewItem()">➕ Add Review Manually</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ADVANCED SETTINGS ── -->
+  <div class="se-section">
+    <div class="se-section-label">Advanced Features & Rules</div>
+    <div class="card" style="margin-bottom:1rem; background:var(--sand-light);">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin-bottom:1.5rem;">
+        <div>
+          <div style="font-weight:600; font-size:0.9rem; margin-bottom:0.5rem;">Live Weather Display</div>
+          <label class="switch-wrap" style="display:flex; align-items:center; gap:0.6rem; font-size:0.85rem; cursor:pointer;">
+            <input type="checkbox" data-se-key="weather_enabled" ${v('weather_enabled', 'true') === 'true' ? 'checked' : ''} onchange="this.value = this.checked ? 'true' : 'false'; _seData['weather_enabled'] = this.value;" style="width:20px; height:20px;">
+            Show current weather in Hero section
+          </label>
+        </div>
+        <div>
+          <div style="font-weight:600; font-size:0.9rem; margin-bottom:0.5rem;">Tide Information (Optional)</div>
+          <label class="switch-wrap" style="display:flex; align-items:center; gap:0.6rem; font-size:0.85rem; cursor:pointer;">
+            <input type="checkbox" data-se-key="tide_enabled" ${v('tide_enabled', 'false') === 'true' ? 'checked' : ''} onchange="this.value = this.checked ? 'true' : 'false'; _seData['tide_enabled'] = this.value;" style="width:20px; height:20px;">
+            Show high tide info (Beach Resorts only)
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Guest House Rules (Editable)</label>
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.5rem;">These rules appear in booking confirmations and are saved to your Knowledge Base.</p>
+        <textarea class="se-editable-box" data-se-key="house_rules" style="width:100%; min-height:150px; padding:1rem; border:1px solid var(--sand-mid); border-radius:10px; font-family:var(--font-sans); font-size:0.85rem; background:white; line-height:1.5;" oninput="_seData['house_rules'] = this.value">${v('house_rules', '1. Check-in: 2:00 PM | Check-out: 12:00 PM\n2. Quiet hours after 10:00 PM\n3. No smoking inside the cottages\n4. Please keep the beach clean')}</textarea>
       </div>
     </div>
   </div>
@@ -2381,13 +2708,507 @@ async function renderSiteEditor() {
   <div class="se-section">
     <div class="se-section-label">Branding &amp; Footer</div>
     <div class="footer-preview" style="background: linear-gradient(135deg, var(--aqua-deep), var(--aqua-dark)); border-radius:16px; padding:2rem; text-align:center; color:white;">
-      <div class="footer-logo se-editable" contenteditable="true" data-se-key="nav_brand" style="font-size:1.3rem; margin-bottom:0.8rem; color:white;">${v('nav_brand',"Avellano's <span>Beach Hut</span>")}</div>
-      <p class="footer-copy se-editable" contenteditable="true" data-se-key="footer_copy" style="opacity:0.7;">${v('footer_copy','© 2025 Avellano\'s Beach Hut Cottage · All rights reserved · Designed with ☀️ for beach lovers.')}</p>
+      <div class="footer-logo se-editable" contenteditable="true" data-se-key="nav_brand" style="font-size:1.3rem; margin-bottom:0.8rem; color:white;">${v('nav_brand', "Avellano's <span>Beach Hut</span>")}</div>
+      <p class="footer-copy se-editable" contenteditable="true" data-se-key="footer_copy" style="opacity:0.7;">${v('footer_copy', '© 2025 Avellano\'s Beach Hut Cottage · All rights reserved · Designed with ☀️ for beach lovers.')}</p>
     </div>
   </div>
   `;
+  // Build dining grid editor
+  renderDiningEditor();
+
+  // Build activities grid editor
+  renderActivitiesEditor();
+
+  // Build perks grid editor
+  renderPerksEditor();
+
+  // Build contact grid editor
+  renderContactEditor();
+
+  // Build reviews grid editor
+  renderReviewsEditor();
+
   // Inject theme animations into the newly rendered preview sections
   if (window.refreshThemeAnimations) setTimeout(refreshThemeAnimations, 100);
+}
+
+// ── CONTACT EDITOR HELPERS ──────────────────────────────────────────────────
+let _contactList = [];
+function renderContactEditor() {
+  const grid = document.getElementById('seContactEditorGrid');
+  if (!grid) return;
+
+  if (_contactList.length === 0) {
+    try {
+      const saved = _seData['contact_list'];
+      _contactList = typeof saved === 'string' ? JSON.parse(saved) : (saved || [
+        { icon: '📞', label: 'Phone', value: '+63 912 345 6789', link: 'tel:+639123456789' },
+        { icon: '📧', label: 'Email', value: 'hello@avellanos.ph', link: 'mailto:hello@avellanos.ph' },
+        { icon: '📍', label: 'Location', value: "Avellano's Cove, Philippines", link: 'https://maps.google.com' },
+        { icon: '⏰', label: 'Front Desk', value: '24 / 7', link: '' }
+      ]);
+    } catch (e) { _contactList = []; }
+  }
+
+  grid.innerHTML = _contactList.map((c, idx) => {
+    const icon = getAutoIcon(c.label, c.link, c.icon);
+    return `
+      <div class="contact-item" style="position:relative; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.1); padding:1rem; border-radius:12px;">
+        <button class="btn btn-danger btn-xs" style="position:absolute; top:0.5rem; right:0.5rem; z-index:10; border-radius:50%; width:24px; height:24px; padding:0; display:flex; align-items:center; justify-content:center; line-height:1;" onclick="removeContactItem(${idx})">×</button>
+        <div id="seContactIcon_${idx}" class="se-editable-box" style="font-size:1.5rem; margin-bottom:0.3rem; color:white; border:none; outline:none; text-align:center; pointer-events:none; display:flex; align-items:center; justify-content:center;">${icon}</div>
+        <div class="se-editable-box" contenteditable="true" oninput="_contactList[${idx}].label = this.innerText; updateContactIconPreview(${idx});" placeholder="Label" style="font-size:0.75rem; text-transform:uppercase; color:rgba(255,255,255,0.6); font-weight:600; text-align:center; border:none;">${c.label || ''}</div>
+        <div class="se-editable-box" contenteditable="true" oninput="_contactList[${idx}].value = this.innerText" placeholder="Display Value" style="font-size:0.9rem; color:white; font-weight:500; text-align:center; border:none;">${c.value || ''}</div>
+        <div class="se-editable-box" contenteditable="true" oninput="_contactList[${idx}].link = this.innerText; updateContactIconPreview(${idx});" placeholder="Link / URL (Optional)" style="font-size:0.65rem; color:rgba(255,255,255,0.5); text-align:center; border:none; margin-top:0.3rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:0.5rem;">${c.link || ''}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateContactIconPreview(idx) {
+  const iconEl = document.getElementById(`seContactIcon_${idx}`);
+  if (iconEl) {
+    const item = _contactList[idx];
+    iconEl.innerHTML = getAutoIcon(item.label, item.link, item.icon);
+  }
+}
+
+function getAutoIcon(label = '', link = '', fallback = '📞') {
+  const l = ((label || '') + (link || '')).toLowerCase().replace(/\s+/g, '');
+
+  const svgStyle = 'width: 32px; height: 32px;';
+  if (l.includes('facebook')) return `<svg style="${svgStyle}" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>`;
+  if (l.includes('instagram')) return `<svg style="${svgStyle}" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M7 2C4.23858 2 2 4.23858 2 7V17C2 19.7614 4.23858 22 7 22H17C19.7614 22 22 19.7614 22 17V7C22 4.23858 19.7614 2 17 2H7ZM12 7C9.23858 7 7 9.23858 7 12C7 14.7614 9.23858 17 12 17C14.7614 17 17 14.7614 17 12C17 9.23858 14.7614 7 12 7ZM12 9C13.6569 9 15 10.3431 15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9ZM17.25 5.75C17.25 6.24706 16.8471 6.65 16.35 6.65C15.8529 6.65 15.45 6.24706 15.45 5.75C15.45 5.25294 15.8529 4.85 16.35 4.85C16.8471 4.85 17.25 5.25294 17.25 5.75Z" clip-rule="evenodd"/></svg>`;
+  if (l.includes('whatsapp')) return `<svg style="${svgStyle}" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>`;
+
+  if (l.includes('viber')) return '🟣';
+  if (l.includes('tiktok')) return '🎵';
+  if (l.includes('youtube')) return '📺';
+  if (l.includes('twitter') || l.includes(' x ')) return '🐦';
+  if (l.includes('phone') || l.includes('tel:')) return '📞';
+  if (l.includes('email') || l.includes('mailto:')) return '📧';
+  if (l.includes('location') || l.includes('maps')) return '📍';
+  if (l.includes('clock') || l.includes('hours')) return '⏰';
+  return fallback;
+}
+
+function addContactItem() {
+  _contactList.push({ icon: '📱', label: 'Social', value: '@yourusername', link: 'https://' });
+  renderContactEditor();
+}
+
+function removeContactItem(idx) {
+  showConfirmModal(
+    "Remove Contact Method?",
+    `Are you sure you want to remove "${_contactList[idx].label || 'this item'}"? This will be reflected on the guest page after saving.`,
+    "📱"
+  ).then(confirmed => {
+    if (confirmed) {
+      _contactList.splice(idx, 1);
+      renderContactEditor();
+    }
+  });
+}
+
+// ── PERKS EDITOR HELPERS ───────────────────────────────────────────────────
+let _perksList = [];
+function renderPerksEditor() {
+  const grid = document.getElementById('sePerksEditorGrid');
+  if (!grid) return;
+
+  if (_perksList.length === 0) {
+    try {
+      const saved = _seData['perks_list'];
+      _perksList = typeof saved === 'string' ? JSON.parse(saved) : (saved || [
+        { icon: '💰', title: 'Best Rate Guarantee', desc: 'Book direct, pay less than any OTA' },
+        { icon: '🎁', title: 'Free Welcome Package', desc: 'Fruits & local wine on arrival' },
+        { icon: '🏊', title: 'Early Check-In', desc: 'Complimentary when available' },
+        { icon: '🔄', title: 'Free Cancellation', desc: 'Up to 48 hours before arrival' },
+        { icon: '🛎', title: 'Priority Service', desc: 'Dedicated concierge attention' }
+      ]);
+    } catch (e) { _perksList = []; }
+  }
+
+  grid.innerHTML = _perksList.map((p, idx) => `
+    <div class="perk-item" style="position:relative; background:white; border:1px solid var(--sand-mid);">
+      <button class="btn btn-danger btn-xs" style="position:absolute; top:-10px; right:-10px; z-index:10; border-radius:50%; width:20px; height:20px; padding:0; display:flex; align-items:center; justify-content:center; line-height:1;" onclick="removePerkItem(${idx})">×</button>
+      <div class="se-editable-box" contenteditable="true" oninput="_perksList[${idx}].icon = this.innerText" style="font-size:1.2rem; text-align:center; border:none; outline:none; margin:0;">${p.icon || '✦'}</div>
+      <div class="se-editable-box" contenteditable="true" oninput="_perksList[${idx}].title = this.innerText" placeholder="Perk Title" style="font-weight:600; font-size:0.85rem; text-align:center; border:none; margin:0; padding:2px;">${p.title || ''}</div>
+      <div class="se-editable-box" contenteditable="true" oninput="_perksList[${idx}].desc = this.innerText" placeholder="Perk Description" style="font-size:0.75rem; color:var(--text-muted); text-align:center; border:none; margin:0; padding:2px; min-height:30px;">${p.desc || ''}</div>
+    </div>
+  `).join('');
+}
+
+function addPerkItem() {
+  _perksList.push({ icon: '✦', title: 'New Perk', desc: 'Describe the benefit here...' });
+  renderPerksEditor();
+}
+
+function removePerkItem(idx) {
+  showConfirmModal(
+    "Remove Perk?",
+    `Are you sure you want to remove "${_perksList[idx].title || 'this perk'}"? This will be reflected on the guest page after saving.`,
+    "🎁"
+  ).then(confirmed => {
+    if (confirmed) {
+      _perksList.splice(idx, 1);
+      renderPerksEditor();
+    }
+  });
+}
+
+// ── ACTIVITIES EDITOR HELPERS ──────────────────────────────────────────────
+let _activitiesList = [];
+function renderActivitiesEditor() {
+  const grid = document.getElementById('seActivitiesEditorGrid');
+  if (!grid) return;
+
+  if (_activitiesList.length === 0) {
+    try {
+      const saved = _seData['activities_list'];
+      _activitiesList = typeof saved === 'string' ? JSON.parse(saved) : (saved || [
+        { icon: '🤿', name: 'Scuba Diving', desc: 'Explore vibrant coral reefs...' },
+        { icon: '🏄', name: 'Surfing', desc: 'Lessons and board rentals...' },
+        { icon: '🚣', name: 'Island Hopping', desc: 'Guided tours to hidden coves...' },
+        { icon: '🧘', name: 'Sunrise Yoga', desc: 'Daily beach sessions at dawn...' }
+      ]);
+    } catch (e) { _activitiesList = []; }
+  }
+
+  grid.innerHTML = _activitiesList.map((a, idx) => `
+    <div class="activity-card" style="position:relative; background:rgba(255,255,255,0.05);">
+      <button class="btn btn-danger btn-xs" style="position:absolute; top:0.5rem; right:0.5rem; z-index:10; border-radius:50%; width:24px; height:24px; padding:0; display:flex; align-items:center; justify-content:center; line-height:1;" onclick="removeActivityItem(${idx})">×</button>
+      <div class="se-editable-box" contenteditable="true" oninput="_activitiesList[${idx}].icon = this.innerText" style="font-size:1.5rem; margin-bottom:0.5rem; text-align:center; border:none; outline:none; cursor:default;">${a.icon || '✨'}</div>
+      <div class="se-editable-box" contenteditable="true" oninput="_activitiesList[${idx}].name = this.innerText" placeholder="Activity Name" style="font-weight:600; text-align:center; border:none; color:white;">${a.name || ''}</div>
+      <div class="se-editable-box" contenteditable="true" oninput="_activitiesList[${idx}].desc = this.innerText" placeholder="Description" style="font-size:0.8rem; color:rgba(255,255,255,0.7); text-align:center; border:none; min-height:40px;">${a.desc || ''}</div>
+    </div>
+  `).join('');
+}
+
+function addActivityItem() {
+  _activitiesList.push({ icon: '✨', name: 'New Activity', desc: 'Describe this activity...' });
+  renderActivitiesEditor();
+}
+
+function removeActivityItem(idx) {
+  showConfirmModal(
+    "Remove Activity?",
+    `Are you sure you want to remove "${_activitiesList[idx].name || 'this activity'}"? This will be reflected on the guest page after saving.`,
+    "🌋"
+  ).then(confirmed => {
+    if (confirmed) {
+      _activitiesList.splice(idx, 1);
+      renderActivitiesEditor();
+    }
+  });
+}
+
+// ── DINING EDITOR HELPERS ──────────────────────────────────────────────────
+let _diningList = [];
+function renderDiningEditor() {
+  const grid = document.getElementById('seDiningEditorGrid');
+  if (!grid) return;
+
+  if (_diningList.length === 0) {
+    try {
+      const saved = _seData['dining_list'];
+      _diningList = typeof saved === 'string' ? JSON.parse(saved) : (saved || [
+        { name: 'Kainan sa Dagat', type: 'Beachfront Restaurant', desc: 'Fresh seafood grilled to order...', hours: 'Open: 7:00 AM – 10:00 PM', image: '' },
+        { name: 'Halo-Halo Sunset Bar', type: 'Beachside Bar & Grill', desc: 'Handcrafted cocktails...', hours: 'Open: 11:00 AM – Midnight', image: '' }
+      ]);
+    } catch (e) { _diningList = []; }
+  }
+
+  grid.innerHTML = _diningList.map((d, idx) => `
+    <div class="dining-card" style="position:relative;">
+      <button class="btn btn-danger btn-xs" style="position:absolute; top:0.5rem; right:0.5rem; z-index:10; border-radius:50%; width:24px; height:24px; padding:0;" onclick="removeDiningItem(${idx})">×</button>
+      <div class="dining-img" style="background-image: url('${d.image || ''}'); background-size: cover; background-position: center; cursor: pointer;" onclick="document.getElementById('seDiningImg_${idx}').click()">
+        ${!d.image ? '<span class="dining-emoji">📸 Tap to Upload</span>' : ''}
+        <input type="file" id="seDiningImg_${idx}" style="display:none;" accept="image/*" onchange="handleDiningImageUpload(this, ${idx})">
+      </div>
+      <div class="dining-body" style="padding:1rem;">
+        <div class="se-editable-box" contenteditable="true" oninput="_diningList[${idx}].name = this.innerText" placeholder="Name">${d.name || ''}</div>
+        <div class="se-editable-box" contenteditable="true" oninput="_diningList[${idx}].type = this.innerText" placeholder="Type" style="color:var(--sunset); font-weight:600; font-size:0.75rem; text-transform:uppercase;">${d.type || ''}</div>
+        <div class="se-editable-box" contenteditable="true" oninput="_diningList[${idx}].desc = this.innerText" placeholder="Description" style="font-size:0.85rem; color:var(--text-muted); min-height:60px;">${d.desc || ''}</div>
+        <div class="se-editable-box" contenteditable="true" oninput="_diningList[${idx}].hours = this.innerText" placeholder="Hours" style="font-size:0.75rem; color:var(--text-muted);">${d.hours || ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addDiningItem() {
+  _diningList.push({ name: 'New Venue', type: 'Restaurant', desc: 'Describe your food and vibe here...', hours: 'Open: 8:00 AM – 10:00 PM', image: '' });
+  renderDiningEditor();
+}
+
+function removeDiningItem(idx) {
+  showConfirmModal(
+    "Remove Dining Venue?",
+    `Are you sure you want to remove "${_diningList[idx].name || 'this venue'}"? This will be reflected on the guest page after saving.`,
+    "🍽️"
+  ).then(confirmed => {
+    if (confirmed) {
+      _diningList.splice(idx, 1);
+      renderDiningEditor();
+    }
+  });
+}
+
+function handleDiningImageUpload(input, idx) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _diningList[idx].image = e.target.result;
+    renderDiningEditor();
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── REVIEWS EDITOR HELPERS ────────────────────────────────────────────────
+let _reviewsList = [];
+function renderReviewsEditor() {
+  const grid = document.getElementById('seReviewsEditorGrid');
+  if (!grid) return;
+
+  if (_reviewsList.length === 0) {
+    try {
+      const saved = _seData['reviews_list'];
+      _reviewsList = typeof saved === 'string' ? JSON.parse(saved) : (saved || [
+        { stars: 5, text: 'Absolute magic. Woke up to ocean sounds every morning — felt like a dream we never wanted to leave.', guest: 'Maria S. · Manila' },
+        { stars: 5, text: 'The staff remembered my coffee order on day two. That kind of warmth is rare anywhere in the world.', guest: 'James T. · Singapore' },
+        { stars: 5, text: 'Our anniversary here was the most romantic trip we\'ve ever taken. The sunset villa is breathtaking.', guest: 'Ana & Carlo M. · Cebu' }
+      ]);
+    } catch (e) { _reviewsList = []; }
+  }
+
+  grid.innerHTML = _reviewsList.map((r, idx) => `
+    <div class="review-card" style="position:relative; background:#f8fafc; border:1px solid #e2e8f0; padding:1.5rem; border-radius:12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+      <button class="btn btn-danger btn-xs" style="position:absolute; top:0.5rem; right:0.5rem; z-index:10; border-radius:50%; width:22px; height:22px; padding:0; display:flex; align-items:center; justify-content:center; line-height:1;" onclick="removeReviewItem(${idx})">×</button>
+      <div class="se-editable-box" contenteditable="true" oninput="_reviewsList[${idx}].stars = Math.min(5, Math.max(1, parseInt(this.innerText.length) || 5))" style="color:#F59E0B; font-size:1.2rem; margin-bottom:0.5rem; border:none; outline:none; letter-spacing:2px;">${'★'.repeat(r.stars)}</div>
+      <div class="se-editable-box" contenteditable="true" oninput="_reviewsList[${idx}].text = this.innerText" style="font-size:0.9rem; font-style:italic; line-height:1.5; margin-bottom:1rem; min-height:60px; color:var(--text-deep); border:none; outline:none;">${r.text || ''}</div>
+      <div class="se-editable-box" contenteditable="true" oninput="_reviewsList[${idx}].guest = this.innerText" style="font-size:0.8rem; font-weight:600; color:var(--text-muted); border:none; outline:none;">${r.guest || ''}</div>
+    </div>
+  `).join('');
+}
+
+function addReviewItem() {
+  _reviewsList.push({ stars: 5, text: 'Enter review text here...', guest: 'Guest Name' });
+  renderReviewsEditor();
+}
+
+function removeReviewItem(idx) {
+  showConfirmModal(
+    "Remove Review?",
+    "Are you sure you want to remove this guest review?",
+    "💬"
+  ).then(confirmed => {
+    if (confirmed) {
+      _reviewsList.splice(idx, 1);
+      renderReviewsEditor();
+    }
+  });
+}
+
+async function syncGoogleReviews() {
+  const btn = document.getElementById('btnSyncReviews');
+  btn.disabled = true;
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = '⏳ Syncing...';
+
+  try {
+    // 1. Get the URL from the business data
+    let gmapsUrl = null;
+    let businessName = "the business";
+    try {
+      const items = await ABHC_DB.getSiteContent();
+      const urlObj = items.find(i => i.key === 'business_gmaps_url');
+      const nameObj = items.find(i => i.key === 'business_name');
+      if (urlObj && urlObj.value) gmapsUrl = urlObj.value;
+      if (nameObj && nameObj.value) businessName = nameObj.value;
+    } catch (e) { }
+
+    if (!gmapsUrl) {
+      toast('Please set a Google Maps Link in Business Information first.', 'warning');
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      return;
+    }
+
+    // Note: Special case hardcoded data has been removed to rely on live scraping or the sample fallback below.
+
+    // 2. Real Extraction Logic (General Case)
+    let decCid = null;
+
+    // Try extraction from hex pattern (0x...:0x...)
+    const hexMatch = gmapsUrl.match(/0x[a-f0-9]+:(0x[a-f0-9]+)/i);
+    if (hexMatch) {
+      try {
+        decCid = BigInt(hexMatch[1]).toString();
+      } catch (e) { console.error("BigInt conversion failed", e); }
+    }
+
+    // Try extraction from query param (?cid=...)
+    if (!decCid) {
+      try {
+        const urlObj = new URL(gmapsUrl);
+        decCid = urlObj.searchParams.get('cid');
+      } catch (e) { }
+    }
+
+    if (!decCid) {
+      throw new Error('Could not find a valid Google Place ID (CID) in the link. Please use a full Google Maps share link.');
+    }
+
+    // Fetch using listentities endpoint (common Google Maps review fetcher)
+    // Multi-proxy & Multi-endpoint Strategy
+    const endpoints = [
+      `https://www.google.com/maps/preview/review/listentitiesreviews?authuser=0&hl=en&gl=ph&pb=!1m2!1y${decCid}!2y${decCid}!2m1!2i10!3e1!4m5!1b1!2b1!3b1!5b1!7b1`,
+      `https://www.google.com/maps/rpc/listreviews?authuser=0&hl=en&gl=ph&pb=!1m1!1s0x0:0x${BigInt(decCid).toString(16)}!2m1!2i10!3e1!4m5!1b1!2b1!3b1!5b1!7b1`
+    ];
+
+    const proxies = [
+      url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&_=${Date.now()}`,
+      url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+      url => `https://corsproxy.io/?${encodeURIComponent(url)}`
+    ];
+
+    let success = false;
+    let contents = null;
+
+    for (const endpoint of endpoints) {
+      if (success) break;
+      for (const proxyFn of proxies) {
+        try {
+          const proxyUrl = proxyFn(endpoint);
+          console.log(`Trying proxy/endpoint combo...`);
+          const response = await fetch(proxyUrl);
+          if (!response.ok) continue;
+
+          let text = await response.text();
+
+          // Handle allorigins wrapping
+          if (text.trim().startsWith('{')) {
+            try {
+              const json = JSON.parse(text);
+              if (json.contents) text = json.contents;
+            } catch (e) { }
+          }
+
+          if (text.includes('<!DOCTYPE') || text.trim().startsWith('<')) {
+            console.warn("Proxy returned HTML, skipping...");
+            continue;
+          }
+
+          if (text.trim().startsWith(")]}'") || text.trim().startsWith('[')) {
+            contents = text;
+            success = true;
+            break;
+          }
+        } catch (e) {
+          console.warn("Combo failed:", e);
+        }
+      }
+    }
+
+    if (!success || !contents) {
+      console.log("API endpoints blocked. Attempting HTML page scraping...");
+      try {
+        // Try to fetch the main Google Maps page directly via proxy
+        const htmlProxyUrl = proxies[2](gmapsUrl); // Use corsproxy.io for HTML as it's often cleaner
+        const htmlResponse = await fetch(htmlProxyUrl);
+        if (htmlResponse.ok) {
+          let htmlText = await htmlResponse.text();
+
+          // Pattern: Find high-quality reviews in the APP_INITIALIZATION_STATE
+          // We look for the "en" language marker followed by the review text
+          const scraped = [];
+          const textRegex = /\[\["en"\],\[\["([^"\\n]{50,})"/g; // Look for long texts (>50 chars)
+          let m;
+          while ((m = textRegex.exec(htmlText)) !== null && scraped.length < 10) {
+            const text = m[1].replace(/\\n/g, ' ').replace(/\\"/g, '"');
+            if (!scraped.some(r => r.text === text)) {
+              // For HTML scraping, we default to 5 stars as these are usually the featured top reviews
+              scraped.push({ guest: "Google Reviewer", stars: 5, text });
+            }
+          }
+
+          // Fallback regex if the first one misses
+          if (scraped.length === 0) {
+            const regex2 = /\[null,null,([45])\],null,"([^"\\n]{50,})"/g;
+            while ((m = regex2.exec(htmlText)) !== null && scraped.length < 10) {
+              const text = m[2].replace(/\\n/g, ' ').replace(/\\"/g, '"');
+              scraped.push({ guest: "Google Reviewer", stars: parseInt(m[1]), text });
+            }
+          }
+
+          if (scraped.length > 0) {
+            _reviewsList = scraped.slice(0, 5); // Take top 5
+            renderReviewsEditor();
+            toast(`Successfully synced ${scraped.length} real reviews from the Maps page! ✅`, 'success');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            return;
+          }
+        }
+      } catch (htmlErr) {
+        console.warn("HTML Scraper also failed:", htmlErr);
+      }
+
+      // FINAL ATTEMPT: Realistic Fake Fallback (User requested)
+      console.warn("All scraping methods failed. Using realistic sample data as final fallback.");
+      _reviewsList = [
+        { guest: "Happy Guest", stars: 5, text: "The stay was absolutely wonderful! The staff were very attentive and the facilities were top-notch. Highly recommend for a relaxing getaway." },
+        { guest: "Family Traveler", stars: 4, text: "Great experience for the kids. The pool area is clean and safe. We will definitely be coming back next season!" },
+        { guest: "Recent Visitor", stars: 5, text: "Exceeded all expectations. The rooms were spacious and the view from the balcony was breathtaking. 10/10!" },
+        { guest: "Nature Lover", stars: 4, text: "Beautiful grounds and very peaceful atmosphere. Perfect place to disconnect and recharge. Very friendly service." },
+        { guest: "Summer Vacationer", stars: 5, text: "The best resort in the area! Every detail was taken care of, from check-in to check-out. Can't wait to visit again." }
+      ];
+      renderReviewsEditor();
+      toast(`Google sync unavailable. Realistic sample reviews loaded instead.`, 'info');
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      return;
+    }
+
+    // Google returns WIZ blobs with )]}' prefix
+    if (contents.trim().startsWith(")]}'")) {
+      contents = contents.trim().substring(4);
+    }
+    if (contents.trim().startsWith('<')) {
+      throw new Error('Google returned an error page instead of review data. This usually means the proxy IP is temporarily blocked. Please try again in 1-2 minutes.');
+    }
+
+    const data = JSON.parse(contents);
+
+    // Structure: data[2] is an array of reviews
+    if (data && data[2] && Array.isArray(data[2])) {
+      const newList = data[2].map(r => {
+        if (!r[0]) return null;
+        return {
+          guest: r[0][1] || "Google User",
+          stars: r[0][2] || 5,
+          text: r[0][3] || ""
+        };
+      }).filter(r => r && r.stars >= 4 && r.text.length > 10).slice(0, 5);
+
+      if (newList.length > 0) {
+        _reviewsList = newList;
+        renderReviewsEditor();
+        toast(`Synced ${newList.length} authentic 4-5 star reviews! ✅`, 'success');
+      } else {
+        throw new Error('No qualifying 4-5 star reviews found.');
+      }
+    } else {
+      throw new Error('Failed to parse reviews from Google.');
+    }
+
+  } catch (e) {
+    console.error('Sync Error:', e);
+    toast(e.message || 'Failed to sync. Ensure the link is a valid Google Maps location.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
 }
 
 async function saveSiteEditorContent() {
@@ -2414,6 +3235,13 @@ async function saveSiteEditorContent() {
     items.push({ key, value, section, label: key });
   });
 
+  // Manually add checkboxes and specific inputs not using .se-editable HTML
+  const weatherCb = document.querySelector('input[onchange*="weather_enabled"]');
+  if (weatherCb) items.push({ key: 'weather_enabled', value: weatherCb.checked ? 'true' : 'false', section: 'other', label: 'Weather Enabled' });
+  
+  const tideCb = document.querySelector('input[onchange*="tide_enabled"]');
+  if (tideCb) items.push({ key: 'tide_enabled', value: tideCb.checked ? 'true' : 'false', section: 'other', label: 'Tide Enabled' });
+
   // Save the visual theme selection
   const themeSelect = document.querySelector('.se-theme-select');
   if (themeSelect) {
@@ -2425,12 +3253,65 @@ async function saveSiteEditorContent() {
     });
   }
 
+  // Save the dynamic activities list
+  items.push({
+    key: 'activities_list',
+    value: JSON.stringify(_activitiesList),
+    section: 'activities',
+    label: 'Activities List (JSON)'
+  });
+
+  // Save the dynamic perks list
+  items.push({
+    key: 'perks_list',
+    value: JSON.stringify(_perksList),
+    section: 'perks',
+    label: 'Perks List (JSON)'
+  });
+
+  // Save the dynamic contact list
+  items.push({
+    key: 'contact_list',
+    value: JSON.stringify(_contactList),
+    section: 'contact',
+    label: 'Contact List (JSON)'
+  });
+
+  // Save the dynamic dining list
+  items.push({
+    key: 'dining_list',
+    value: JSON.stringify(_diningList),
+    section: 'dining',
+    label: 'Dining List (JSON)'
+  });
+
+  // Save the dynamic reviews list
+  items.push({
+    key: 'reviews_list',
+    value: JSON.stringify(_reviewsList),
+    section: 'reviews',
+    label: 'Reviews List (JSON)'
+  });
+
   const btn = document.getElementById('siteEditorSaveBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Saving...';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Saving...';
+  }
 
   try {
     await ABHC_DB.saveSiteContent(items);
+    
+    // ── SYNC HOUSE RULES TO KB ──
+    const rules = items.find(i => i.key === 'house_rules')?.value;
+    if (rules) {
+      await ABHC_DB.updateKB({
+        category: 'Policies',
+        title: 'Guest House Rules',
+        content: rules
+      });
+    }
+
     toast('Site content saved! Guest page updated. ✅', 'success');
     await logSystemAction(`updated guest site content (${items.length} fields)`);
   } catch (err) {
@@ -2449,8 +3330,22 @@ async function loadAdminTheme() {
     if (themeObj && themeObj.value) {
       document.documentElement.setAttribute('data-theme', themeObj.value);
     }
+    const bizNameObj = items.find(i => i.key === 'business_name');
+    if (bizNameObj && bizNameObj.value) {
+      document.title = bizNameObj.value + ' \u2013 Admin Panel';
+      const words = bizNameObj.value.split(' ');
+      const logoEl = document.getElementById('sidebarLogoMain');
+      if (logoEl) {
+        if (words.length > 1) {
+          const first = words.shift();
+          logoEl.innerHTML = `${first} <span>${words.join(' ')}</span>`;
+        } else {
+          logoEl.innerHTML = bizNameObj.value;
+        }
+      }
+    }
   } catch (e) {
-    console.error('Failed to load admin theme:', e);
+    console.error('Failed to load admin initial content:', e);
   }
 }
 
@@ -2459,3 +3354,87 @@ initStaffRole().then(() => {
   renderDashboard();
   renderBookings();
 });
+
+// ── STAFF LIST RENDERING ──────────────────────────────────────────────────────
+async function renderStaffList() {
+  const { data, error } = await window.supa.from('staff_profiles').select('*');
+  if (error) { toast('Error loading staff: ' + error.message, 'error'); return; }
+  document.getElementById('empTbody').innerHTML = data.map(s => `
+    <tr>
+      <td style="font-family:monospace; font-weight:600; color:var(--sunset);">${s.emp_id || '---'}</td>
+      <td>${s.first_name}</td>
+      <td>${s.last_name}</td>
+      <td><span class="badge ${s.role === 'master' ? 'badge-confirmed' : 'badge-pending'}">${s.role.toUpperCase()}</span></td>
+      <td style="display:flex; gap:0.5rem;">
+        <button class="btn btn-ghost btn-xs" onclick="openStaffEditModal('${s.id}')">✏️ Edit</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteStaff('${s.id}')">🗑 Remove</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+window.openStaffEditModal = async function (id) {
+  try {
+    const { data, error } = await window.supa.from('staff_profiles').select('*').eq('id', id).single();
+    if (error) throw error;
+
+    document.getElementById('editStaffId').value = data.id;
+    document.getElementById('editStaffFName').value = data.first_name;
+    document.getElementById('editStaffLName').value = data.last_name;
+    document.getElementById('editStaffPhone').value = data.phone || '';
+    document.getElementById('editStaffEmpId').value = data.emp_id || '---';
+
+    openModal('staffEditModal');
+  } catch (err) {
+    toast('Error loading staff details: ' + err.message, 'error');
+  }
+}
+
+window.saveStaffEdit = async function () {
+  const id = document.getElementById('editStaffId').value;
+  const firstName = document.getElementById('editStaffFName').value.trim();
+  const lastName = document.getElementById('editStaffLName').value.trim();
+  const phone = document.getElementById('editStaffPhone').value.trim();
+
+  if (!firstName || !lastName) {
+    toast('First and Last name are required.', 'error');
+    return;
+  }
+
+  const btn = document.querySelector('#staffEditModal .btn-primary');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  try {
+    const { error } = await window.supa.from('staff_profiles').update({
+      first_name: firstName,
+      last_name: lastName,
+      phone: phone
+    }).eq('id', id);
+
+    if (error) throw error;
+
+    toast('Staff account updated successfully!', 'success');
+    closeModal('staffEditModal');
+    renderStaffList();
+    await logSystemAction(`updated staff profile for: ${firstName} ${lastName}`);
+  } catch (err) {
+    toast('Error updating staff: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save Changes';
+  }
+}
+
+async function deleteStaff(id) {
+  if (_currentStaffRole !== 'master') {
+    toast('Only Master Admin can delete accounts.', 'error'); return;
+  }
+  if (!confirm('Are you sure you want to remove this staff account?')) return;
+  try {
+    // Requires admin privileges in edge function or direct supabase client, 
+    // but assuming simple delete profile for now
+    const { error } = await window.supa.from('staff_profiles').delete().eq('id', id);
+    if (error) throw error;
+    toast('Staff account removed.', 'success');
+    renderStaffList();
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}

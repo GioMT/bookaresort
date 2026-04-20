@@ -3,7 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Avellano's – Admin Panel</title>
+<title>Admin Panel</title>
+
+  <!-- Prevent Name Flash -->
+  <script>
+    try {
+      const scRaw = localStorage.getItem('ABHC_siteContent');
+      if (scRaw) {
+        const parsed = JSON.parse(scRaw);
+        if (parsed && parsed.data && Array.isArray(parsed.data)) {
+          const bizItem = parsed.data.find(i => i.key === 'business_name');
+          if (bizItem && bizItem.value) {
+            document.title = bizItem.value + ' – Admin Panel';
+          }
+        }
+      }
+    } catch (e) {}
+  </script>
+
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600&family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&family=Karla:wght@300;400;500&family=Lora:ital,wght@0,400;0,500;1,400&family=Montserrat:wght@300;400;500;600&family=Nunito:wght@300;400;500;600&family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Poppins:wght@300;400;500&family=Rubik:wght@300;400;500&family=Space+Grotesk:wght@300;400;500;600&family=Syne:wght@400;500;600;700&family=Work+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/main.css">
 <link rel="stylesheet" href="css/admin.css">
@@ -12,7 +29,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/auth.js"></script>
   <script>enforceAdminAuth();</script>
-
 </head>
 <body>
 
@@ -25,9 +41,30 @@
 <!-- SIDEBAR -->
 <aside class="sidebar" id="mainSidebar">
   <div class="sidebar-logo">
-    <div class="logo-main">Avellano's <span>Beach Hut</span></div>
+    <div class="logo-main" id="sidebarLogoMain" data-sc="nav_brand"><span>Admin Panel</span></div>
     <div class="logo-sub">Admin Panel</div>
   </div>
+  <script>
+    try {
+      const scRaw = localStorage.getItem('ABHC_siteContent');
+      if (scRaw) {
+        const parsed = JSON.parse(scRaw);
+        if (parsed && parsed.data && Array.isArray(parsed.data)) {
+          const bizItem = parsed.data.find(i => i.key === 'business_name');
+          if (bizItem && bizItem.value) {
+            const words = bizItem.value.split(' ');
+            const logoEl = document.getElementById('sidebarLogoMain');
+            if (words.length > 1) {
+              const first = words.shift();
+              logoEl.innerHTML = `${first} <span>${words.join(' ')}</span>`;
+            } else {
+              logoEl.innerHTML = bizItem.value;
+            }
+          }
+        }
+      }
+    } catch (e) {}
+  </script>
   <nav class="sidebar-nav">
     <div class="nav-section-label">System</div>
     <a class="nav-item" data-page="business" onclick="navTo('business')">
@@ -227,18 +264,31 @@
 
     <!-- STAFFING PAGE -->
     <div class="page" id="page-staff">
-      <div class="card" style="max-width: 500px;">
-        <div class="card-title">👥 Add Employee Account</div>
-        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;">Only the Master Admin can create new staff credentials.</p>
-        <div class="form-row">
-          <div class="form-group"><label>First Name</label><input type="text" id="empFName" placeholder="Juan"></div>
-          <div class="form-group"><label>Last Name</label><input type="text" id="empLName" placeholder="Dela Cruz"></div>
+      <div style="display:flex;gap:1.5rem;flex-wrap:wrap;align-items:flex-start;">
+        <div class="card" style="flex:1;min-width:300px;">
+          <div class="card-title">👥 Add Employee Account</div>
+          <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;">Only the Master Admin can create new staff credentials.</p>
+          <div class="form-row">
+            <div class="form-group"><label>First Name</label><input type="text" id="empFName" placeholder="Juan"></div>
+            <div class="form-group"><label>Last Name</label><input type="text" id="empLName" placeholder="Dela Cruz"></div>
+          </div>
+          <div class="form-group"><label>Phone Number</label><input type="tel" id="empPhone" placeholder="+63 912 345 6789"></div>
+          <div class="form-group"><label>Employee Email</label><input type="email" id="empEmail" placeholder="juan@avellanos.com"></div>
+          <div class="form-group"><label>Temporary Password</label><input type="password" id="empPass" placeholder="At least 6 characters"></div>
+          <button class="btn btn-success" id="btnCreateEmp" onclick="createEmployee()" style="width: 100%; margin-top: 0.5rem;">+ Create Account</button>
+          <div id="empMsg" style="margin-top: 1rem; font-size: 0.85rem; text-align: center; font-weight: 500;"></div>
         </div>
-        <div class="form-group"><label>Phone Number</label><input type="tel" id="empPhone" placeholder="+63 912 345 6789"></div>
-        <div class="form-group"><label>Employee Email</label><input type="email" id="empEmail" placeholder="juan@avellanos.com"></div>
-        <div class="form-group"><label>Temporary Password</label><input type="password" id="empPass" placeholder="At least 6 characters"></div>
-        <button class="btn btn-success" id="btnCreateEmp" onclick="createEmployee()" style="width: 100%; margin-top: 0.5rem;">+ Create Account</button>
-        <div id="empMsg" style="margin-top: 1rem; font-size: 0.85rem; text-align: center; font-weight: 500;"></div>
+        
+        <div class="card" style="flex:2;min-width:400px;">
+          <div class="card-title">👨‍💼 Employee List</div>
+          <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;">Manage active staff accounts.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Employee ID</th><th>First Name</th><th>Last Name</th><th>Role</th><th>Action</th></tr></thead>
+              <tbody id="empTbody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -256,7 +306,7 @@
         </div>
         <div class="form-group">
           <label>Category</label>
-          <select id="repairCat">
+          <select id="repairCat" onchange="document.getElementById('repairOtherGroup').style.display = this.value === 'Other' ? 'block' : 'none'">
             <option>Furniture Damage</option>
             <option>Appliance Repair</option>
             <option>Plumbing</option>
@@ -265,6 +315,10 @@
             <option>Structural</option>
             <option>Other</option>
           </select>
+        </div>
+        <div class="form-group" id="repairOtherGroup" style="display:none;">
+          <label>Specify Other Category</label>
+          <input type="text" id="repairOtherText" placeholder="Please specify...">
         </div>
         <button class="btn btn-sunset" onclick="addRepair()">+ Log Repair Cost</button>
       </div>
@@ -377,13 +431,21 @@
 
     <!-- SITE EDITOR PAGE -->
     <div class="page" id="page-siteeditor">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:1rem;">
-        <div>
-          <h2 style="font-size:1.5rem; font-weight:600; margin:0;">🎨 Site Editor</h2>
-          <p style="font-size:0.82rem; color:var(--text-muted); margin:0.3rem 0 0;">Click any highlighted text to edit. Changes save directly to the live guest page.</p>
+      <!-- STICKY ACTION BAR -->
+      <div class="se-sticky-bar">
+        <div class="se-sticky-inner">
+          <div>
+            <h2 style="font-size:1.1rem; font-weight:600; margin:0;">🎨 Site Editor</h2>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin:0;">Previewing Live Content</p>
+          </div>
+          <div style="display:flex; gap:0.6rem;">
+            <button class="btn btn-ghost btn-sm" onclick="loadSiteEditor()">🔄 Discard Changes</button>
+            <button class="btn btn-primary btn-sm" id="siteEditorSaveBtn" onclick="saveSiteEditorContent()">💾 Save All Changes</button>
+          </div>
         </div>
-        <button class="btn btn-primary" id="siteEditorSaveBtn" onclick="saveSiteEditorContent()" style="position:sticky; top:1rem; z-index:50;">💾 Save All Changes</button>
       </div>
+      
+      <p style="font-size:0.82rem; color:var(--text-muted); margin:0 0 1.5rem;">Click any highlighted text to edit. Changes save directly to the live guest page.</p>
 
       <div id="siteEditorContainer" class="se-preview-wrap">
         <div style="text-align:center; padding:3rem; color:var(--text-muted);">Loading site preview...</div>
@@ -503,7 +565,7 @@
     </div>
     <div class="form-row">
       <div class="form-group"><label>12-Hour Price (₱)</label><input type="number" id="rPrice12h" min="0"></div>
-      <div class="form-group"><label>24-Hour Price (₱)</label><input type="number" id="rPrice24h" min="0"></div>
+      <div class="form-group"><label>24-Hour Price (₱)</label><input type="number" id="rPrice24h" min="0" oninput="document.getElementById('rPrice12h').value = Math.round(this.value * 0.6)"></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>Capacity</label><input type="text" id="rCap" placeholder="2 Adults 1 Child"></div>
@@ -554,6 +616,64 @@
     <div class="modal-actions">
       <button class="btn btn-ghost"   onclick="closeModal('bookingDetailModal')">Close</button>
       <button class="btn btn-primary" id="editFromDetailBtn">Edit Booking</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAFF AUTH MODAL -->
+<div class="modal-overlay" id="staffAuthModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-title">Master Admin Authentication</div>
+    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.5rem;">Please enter your password to access Staff Accounts.</p>
+    <div class="form-group">
+      <label>Master Admin Password</label>
+      <input type="password" id="staffAuthPass" placeholder="Enter password..." onkeypress="if(event.key==='Enter') authenticateStaffTab()">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('staffAuthModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="authenticateStaffTab()">Verify & Access</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAFF EDIT MODAL -->
+<div class="modal-overlay" id="staffEditModal">
+  <div class="modal" style="max-width:450px;">
+    <div class="modal-title">Edit Employee Account</div>
+    <input type="hidden" id="editStaffId">
+    <div class="form-row">
+      <div class="form-group"><label>First Name</label><input type="text" id="editStaffFName"></div>
+      <div class="form-group"><label>Last Name</label><input type="text" id="editStaffLName"></div>
+    </div>
+    <div class="form-group"><label>Phone Number</label><input type="tel" id="editStaffPhone"></div>
+    <div class="form-group"><label>Employee ID (Read-only)</label><input type="text" id="editStaffEmpId" readonly style="background:var(--sand); cursor:not-allowed;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('staffEditModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStaffEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- DAY AVAILABILITY MODAL -->
+<div class="modal-overlay" id="dayAvailabilityModal">
+  <div class="modal" style="max-width:700px;">
+    <div class="modal-title" id="dayAvailTitle">Availability Details</div>
+    <div id="dayAvailContent" style="max-height: 500px; overflow-y: auto;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('dayAvailabilityModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- GENERIC CONFIRM MODAL -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal" style="max-width:400px; text-align:center;">
+    <div id="confirmIcon" style="font-size:3rem; margin-bottom:1rem;">⚠️</div>
+    <div class="modal-title" id="confirmTitle">Are you sure?</div>
+    <p id="confirmMessage" style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1.5rem; line-height:1.6;">This action cannot be undone.</p>
+    <div class="modal-actions" style="justify-content:center; gap:1rem;">
+      <button class="btn btn-ghost" id="confirmCancelBtn" style="min-width:100px;">Cancel</button>
+      <button class="btn btn-danger" id="confirmOkBtn" style="min-width:100px;">Delete</button>
     </div>
   </div>
 </div>

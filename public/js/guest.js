@@ -4,47 +4,292 @@
    ============================================================ */
 
 // ── CMS CONTENT LOADER ───────────────────────────────────────────────────────
+let _businessName = "Avellano's"; // global fallback
+function applyContentMap(map) {
+  document.querySelectorAll('[data-sc]').forEach(el => {
+    const key = el.getAttribute('data-sc');
+    if (map[key] !== undefined && map[key] !== '') {
+      el.innerHTML = map[key];
+    }
+  });
+  // Update browser tab and branding
+  if (map['business_name']) {
+    _businessName = map['business_name'];
+    const chatTitle = document.getElementById('chatSupportTitle');
+    if (chatTitle) chatTitle.textContent = `${_businessName}'s Support`;
+    const preloaderLogo = document.getElementById('preloaderLogo');
+    if (preloaderLogo) preloaderLogo.textContent = map['business_name'];
+    document.title = map['business_name'] + ' – Luxury Beachfront Retreat';
+  }
+
+  // ── DYNAMIC DINING RENDERING ──────────────────────────────────────────────
+  const diningGrid = document.getElementById('diningGrid');
+  if (diningGrid && map['dining_list']) {
+    try {
+      const list = typeof map['dining_list'] === 'string' ? JSON.parse(map['dining_list']) : map['dining_list'];
+      if (Array.isArray(list)) {
+        diningGrid.innerHTML = list.map((d, idx) => `
+          <div class="dining-card reveal-${idx % 2 === 0 ? 'left' : 'right'} visible">
+            <div class="dining-img" style="background-image: url('${d.image || ''}'); background-size: cover; background-position: center;">
+              ${!d.image ? '<span class="dining-emoji">' + (d.emoji || '🍴') + '</span>' : ''}
+            </div>
+            <div class="dining-body">
+              <h3 class="dining-name">${d.name || 'New Dining'}</h3>
+              <div class="dining-type">${d.type || 'Restaurant'}</div>
+              <p class="dining-desc">${d.desc || ''}</p>
+              <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">${d.hours || ''}</p>
+              <a href="#contact" class="btn-menu">View Menu</a>
+            </div>
+          </div>
+        `).join('');
+      }
+    } catch(e) { console.warn("Failed to render dining list:", e); }
+  }
+
+  // ── DYNAMIC ACTIVITIES RENDERING ──────────────────────────────────────────
+  const activitiesGrid = document.getElementById('activitiesGrid');
+  if (activitiesGrid && map['activities_list']) {
+    try {
+      const list = typeof map['activities_list'] === 'string' ? JSON.parse(map['activities_list']) : map['activities_list'];
+      if (Array.isArray(list)) {
+        activitiesGrid.innerHTML = list.map((a, idx) => `
+          <div class="activity-card reveal stagger-${(idx % 4) + 1} visible">
+            <span class="activity-icon">${a.icon || '✨'}</span>
+            <div class="activity-name">${a.name || 'New Activity'}</div>
+            <div class="activity-desc">${a.desc || ''}</div>
+          </div>
+        `).join('');
+      }
+    } catch(e) { console.warn("Failed to render activities list:", e); }
+  }
+
+  // ── DYNAMIC PERKS RENDERING ───────────────────────────────────────────────
+  const perksGrid = document.getElementById('perksGrid');
+  if (perksGrid && map['perks_list']) {
+    try {
+      const list = typeof map['perks_list'] === 'string' ? JSON.parse(map['perks_list']) : map['perks_list'];
+      if (Array.isArray(list)) {
+        perksGrid.innerHTML = list.map((p, idx) => `
+          <div class="perk-item reveal stagger-${(idx % 5) + 1} visible">
+            <span class="perk-icon">${p.icon || '✦'}</span>
+            <div class="perk-title">${p.title || 'New Perk'}</div>
+            <div class="perk-desc">${p.desc || ''}</div>
+          </div>
+        `).join('');
+      }
+    } catch(e) { console.warn("Failed to render perks list:", e); }
+  }
+
+  // ── DYNAMIC CONTACT RENDERING ─────────────────────────────────────────────
+  const contactGrid = document.getElementById('contactGrid');
+  if (contactGrid && map['contact_list']) {
+    try {
+      const list = typeof map['contact_list'] === 'string' ? JSON.parse(map['contact_list']) : map['contact_list'];
+      if (Array.isArray(list)) {
+        contactGrid.innerHTML = list.map(c => {
+          const icon = getAutoIcon(c.label, c.link, c.icon);
+          const isLink = !!c.link;
+          const tag = isLink ? 'a' : 'div';
+          const href = isLink ? `href="${c.link}" target="_blank"` : '';
+          
+          return `
+            <${tag} ${href} class="contact-item" style="text-decoration: none; color: inherit; display: block;">
+              <span class="contact-icon">${icon}</span>
+              <div class="contact-label">${c.label || 'Contact'}</div>
+              <div class="contact-value">${c.value || ''}</div>
+            </${tag}>
+          `;
+        }).join('');
+      }
+    } catch(e) { console.warn("Failed to render contact list:", e); }
+  }
+
+  // ── DYNAMIC REVIEWS RENDERING ─────────────────────────────────────────────
+  if (map['reviews_list']) {
+    renderReviews(map);
+  }
+
+  // ── UPDATE GLOBAL CONTENT ──────────────────────────────────────────────────
+  _siteContent = map;
+  refreshVirtualTour();
+}
+
+let _siteContent = {};
+let _rooms = [];
+
+function refreshVirtualTour() {
+  const tabs = document.getElementById('tourTabs');
+  if (!tabs) return;
+
+  const tourData = {};
+  const html = [];
+
+  // 1. Add Active Rooms
+  _rooms.forEach(r => {
+    const key = `room-${r.id}`;
+    tourData[key] = {
+      title: r.name,
+      desc: r.desc || `Experience luxury in our ${r.name}. Designed for comfort and style.`,
+      link: r.tourUrl || '#'
+    };
+    html.push(`<button class="tour-tab" data-bg="${key}" onclick="setTourBg(this)">${r.name}</button>`);
+  });
+
+  // 2. Add Restaurants from Dining List
+  if (_siteContent['dining_list']) {
+    try {
+      const list = typeof _siteContent['dining_list'] === 'string' ? JSON.parse(_siteContent['dining_list']) : _siteContent['dining_list'];
+      if (Array.isArray(list)) {
+        list.forEach((d, idx) => {
+          const type = (d.type || '').toLowerCase();
+          if (type.includes('restaurant') || type.includes('dining')) {
+            const key = `dining-${idx}`;
+            tourData[key] = {
+              title: d.name,
+              desc: d.desc || `A culinary journey through Filipino heritage at ${d.name}.`,
+              link: d.tourUrl || '#'
+            };
+            html.push(`<button class="tour-tab" data-bg="${key}" onclick="setTourBg(this)">${d.name}</button>`);
+          }
+        });
+      }
+    } catch (e) { }
+  }
+
+  // 3. Add Beach Area (Static Feature)
+  tourData['tb-beach'] = {
+    title: 'Beach Area',
+    desc: 'Powdery white sand and crystal clear turquoise water. Your playground awaits.',
+    link: '#'
+  };
+  html.push(`<button class="tour-tab" data-bg="tb-beach" onclick="setTourBg(this)">Beach Area</button>`);
+
+  tabs.innerHTML = html.join('');
+  window.TOUR_DATA = tourData;
+
+  // Set first as active if none is active
+  const active = tabs.querySelector('.tour-tab.active');
+  if (!active && html.length > 0) {
+    setTourBg(tabs.querySelector('.tour-tab'));
+  }
+}
+
+function getAutoIcon(label = '', link = '', fallback = '📞') {
+  const l = ((label || '') + (link || '')).toLowerCase().replace(/\s+/g, '');
+  
+  const svgStyle = 'width: 32px; height: 32px;';
+  if (l.includes('facebook') || l.includes('fb.')) return `<svg style="${svgStyle}" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>`;
+  if (l.includes('instagram') || l.includes('ig.')) return `<svg style="${svgStyle}" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M7 2C4.23858 2 2 4.23858 2 7V17C2 19.7614 4.23858 22 7 22H17C19.7614 22 22 19.7614 22 17V7C22 4.23858 19.7614 2 17 2H7ZM12 7C9.23858 7 7 9.23858 7 12C7 14.7614 9.23858 17 12 17C14.7614 17 17 14.7614 17 12C17 9.23858 14.7614 7 12 7ZM12 9C13.6569 9 15 10.3431 15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9ZM17.25 5.75C17.25 6.24706 16.8471 6.65 16.35 6.65C15.8529 6.65 15.45 6.24706 15.45 5.75C15.45 5.25294 15.8529 4.85 16.35 4.85C16.8471 4.85 17.25 5.25294 17.25 5.75Z" clip-rule="evenodd"/></svg>`;
+  if (l.includes('whatsapp') || l.includes('wa.me')) return `<svg style="${svgStyle}" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>`;
+  
+  if (l.includes('viber')) return '🟣';
+  if (l.includes('tiktok')) return '🎵';
+  if (l.includes('youtube')) return '📺';
+  if (l.includes('twitter') || l.includes(' x ') || l.includes('t.co')) return '🐦';
+  if (l.includes('phone') || l.includes('tel:') || l.includes('call')) return '📞';
+  if (l.includes('email') || l.includes('mailto:')) return '📧';
+  if (l.includes('location') || l.includes('maps') || l.includes('address')) return '📍';
+  if (l.includes('clock') || l.includes('hours') || l.includes('time')) return '⏰';
+  return fallback;
+}
+
 (async function loadSiteContent() {
+  // 1. First, quickly apply cached branding to avoid "Avellanos" fallback
+  const cache = localStorage.getItem('ABHC_siteContent');
+  if (cache) {
+    try {
+      const parsed = JSON.parse(cache);
+      if (parsed && parsed.data) {
+        const map = {};
+        parsed.data.forEach(i => { map[i.key] = i.value; });
+        applyContentMap(map);
+      }
+    } catch(e) {}
+  }
+
   try {
+    // 2. Then, fetch fresh data from the server
     const items = await ABHC_DB.getSiteContent();
-    if (!items || items.length === 0) return; // No CMS data yet — keep HTML defaults
+    if (!items || items.length === 0) return;
     const map = {};
     items.forEach(i => { map[i.key] = i.value; });
-    document.querySelectorAll('[data-sc]').forEach(el => {
-      const key = el.getAttribute('data-sc');
-      if (map[key] !== undefined && map[key] !== '') {
-        el.innerHTML = map[key];
-      }
-    });
+    applyContentMap(map);
+    
     // Apply theme
     if (map['site_theme']) {
       document.documentElement.setAttribute('data-theme', map['site_theme']);
+      localStorage.setItem('abhc_theme', map['site_theme']);
     }
     // Update the Google Maps button if coordinates have been set
     const mapBtn = document.getElementById('guestMapBtn');
     if (mapBtn && map['contact_map_url']) {
       mapBtn.setAttribute('onclick', `window.open('${map['contact_map_url']}','_blank')`);
     }
+
+    // Trigger dynamic features based on coordinates
+    if (map['business_coords']) {
+      const coords = map['business_coords'];
+      fetchWeather(coords);
+      generateNearbyPlaces(coords);
+      
+      // Update embedded map iframe
+      const mapIf = document.getElementById('guestMapIframe');
+      if (mapIf) {
+        const [lat, lon] = coords.split(',').map(c => c.trim());
+        if (lat && lon) {
+          mapIf.src = `https://maps.google.com/maps?q=${lat},${lon}&z=15&output=embed`;
+          
+          // Also update the click-to-open map link if a specific URL isn't provided
+          if (mapBtn && !map['contact_map_url']) {
+            mapBtn.setAttribute('onclick', `window.open('https://www.google.com/maps/search/?api=1&query=${lat},${lon}','_blank')`);
+          }
+        }
+      }
+    } else {
+      fetchWeather(); // Fallback to defaults
+    }
+    // Save to cache for fast branding sync on next load
+    localStorage.setItem('ABHC_siteContent', JSON.stringify({ data: items, time: Date.now() }));
+    
+    // ── INITIALIZE DARK MODE ──
+    initDarkMode();
+
+    // ── HANDLE WEATHER VISIBILITY ──
+    const weatherEnabled = map['weather_enabled'] !== 'false';
+    const tideEnabled = map['tide_enabled'] === 'true';
+    const strip = document.getElementById('weatherStrip');
+    if (strip) strip.style.display = weatherEnabled ? 'flex' : 'none';
+    const tideEl = document.getElementById('tideInfo');
+    if (tideEl) tideEl.style.display = tideEnabled ? 'flex' : 'none';
+
   } catch (e) {
-    // Silently fail — guest page still works with hardcoded defaults
     console.warn('CMS content load skipped:', e.message);
+    fetchWeather(); // Fallback
   }
 })();
 
-// ── WEATHER API ──────────────────────────────────────────────────────────────
-async function fetchWeather() {
+// ── WEATHER API & NEARBY PLACES ──────────────────────────────────────────────
+async function fetchWeather(coordsStr) {
   try {
-    // Coordinates for a beach in the Philippines (e.g., near San Juan, La Union or similar)
-    const lat = 16.6627;
-    const lon = 120.3204;
-    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=sunset&timezone=Asia%2FManila`);
-    const data = await res.json();
+    let lat = 16.6627;
+    let lon = 120.3204;
+    if (coordsStr) {
+      const parts = coordsStr.split(',');
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        lat = parseFloat(parts[0]);
+        lon = parseFloat(parts[1]);
+      }
+    }
 
-    if (data.current) {
-      const temp = Math.round(data.current.temperature_2m);
-      const hum = data.current.relative_humidity_2m;
-      const code = data.current.weather_code;
-      const sunset = new Date(data.daily.sunset[0]).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    // Fetch Weather & Sunset (Auto Timezone)
+    const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=sunset&timezone=auto`);
+    const wData = await weatherRes.json();
+
+    if (wData.current) {
+      const temp = Math.round(wData.current.temperature_2m);
+      const hum = wData.current.relative_humidity_2m;
+      const code = wData.current.weather_code;
+      const sunset = new Date(wData.daily.sunset[0]).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
       document.getElementById('weatherTemp').textContent = `${temp}°C`;
       document.getElementById('weatherHumidity').textContent = `${hum}%`;
@@ -64,9 +309,153 @@ async function fetchWeather() {
         msgEl.textContent = 'The ocean is dancing. Stay safe and enjoy the rhythm! 🌩️';
       }
     }
+
+    // Fetch Tide Data (Marine API)
+    try {
+      const marineRes = await fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=sea_level_height&length_unit=metric`);
+      const mData = await marineRes.json();
+      if (mData.hourly && mData.hourly.sea_level_height) {
+        const heights = mData.hourly.sea_level_height;
+        const now = new Date();
+        const currentHour = now.getHours();
+        
+        const currentVal = heights[currentHour];
+        const nextVal = heights[currentHour + 1] || currentVal;
+        const prevVal = heights[currentHour - 1] || currentVal;
+
+        let status = "Stable";
+        if (currentVal > prevVal && currentVal > nextVal) status = "High";
+        else if (currentVal < prevVal && currentVal < nextVal) status = "Low";
+        else if (nextVal > currentVal) status = "Rising";
+        else if (nextVal < currentVal) status = "Falling";
+
+        document.getElementById('weatherTide').textContent = status + " Tide";
+      } else {
+        document.getElementById('weatherTide').textContent = "Moderate";
+      }
+    } catch (e) {
+      document.getElementById('weatherTide').textContent = "Normal";
+    }
+
   } catch (e) { console.error("Weather fetch failed", e); }
 }
-fetchWeather();
+
+async function generateNearbyPlaces(coordsStr) {
+  if (!coordsStr) return;
+  const parts = coordsStr.split(',');
+  if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return;
+  const lat = parseFloat(parts[0]);
+  const lon = parseFloat(parts[1]);
+
+  const cacheKey = `ABHC_nearby_v8_${lat}_${lon}`;
+  let nearbyData = null;
+  const cachedStr = localStorage.getItem(cacheKey);
+  if (cachedStr) {
+    try {
+      const parsed = JSON.parse(cachedStr);
+      if (Date.now() - parsed.time < 86400000 * 7) { // 7 days cache
+        nearbyData = parsed.data;
+      }
+    } catch(e) {}
+  }
+
+  if (!nearbyData) {
+    try {
+      // Expanded query for places that commonly appear on Google Maps
+      const query = `
+        [out:json][timeout:15];
+        (
+          nwr(around:5000,${lat},${lon})["amenity"="bus_station"];
+          nwr(around:3000,${lat},${lon})["highway"="bus_stop"];
+          nwr(around:5000,${lat},${lon})["tourism"="hotel"];
+          nwr(around:5000,${lat},${lon})["tourism"="resort"];
+          nwr(around:3000,${lat},${lon})["shop"="supermarket"];
+          nwr(around:3000,${lat},${lon})["shop"="convenience"];
+          nwr(around:3000,${lat},${lon})["amenity"="marketplace"];
+          nwr(around:8000,${lat},${lon})["amenity"="hospital"];
+          nwr(around:8000,${lat},${lon})["amenity"="police"];
+        );
+        out center;
+      `;
+      const res = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        body: query
+      });
+      const data = await res.json();
+      
+      const items = { transport: null, hotel: null, market: null, hospital: null, police: null };
+
+      // Haversine distance in km
+      const getDist = (lat1, lon1, lat2, lon2) => {
+        const R = 6371; // km
+        const dLat = (lat2-lat1) * Math.PI/180;
+        const dLon = (lon2-lon1) * Math.PI/180;
+        const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)*Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        // Add a 1.3x "road factor" to account for non-straight walking paths (more accurate than straight-line)
+        return (R * c) * 1.3; 
+      };
+
+      const walkingSpeed = 5; // km/h (average walking speed)
+
+      data.elements.forEach(el => {
+        const elLat = el.lat || (el.center && el.center.lat);
+        const elLon = el.lon || (el.center && el.center.lon);
+        if (!elLat || !elLon) return;
+        
+        const dist = getDist(lat, lon, elLat, elLon);
+        const name = el.tags.name || 'Local Spot';
+        
+        const checkMin = (cat, defaultName, sub) => {
+          if (!items[cat] || dist < items[cat].dist) {
+            items[cat] = { name: name === 'Local Spot' ? defaultName : name, dist, sub, speedKmh: walkingSpeed };
+          }
+        };
+
+        const t = el.tags;
+        if (t.amenity === 'bus_station' || t.highway === 'bus_stop') checkMin('transport', 'Transport Terminal', 'Local bus & jeepney hub');
+        else if (t.tourism === 'hotel' || t.tourism === 'resort') checkMin('hotel', 'Nearby Hotel', 'Guest accommodations');
+        else if (t.shop === 'supermarket' || t.shop === 'convenience' || t.amenity === 'marketplace') checkMin('market', 'Town Market', 'Local vendors & shops');
+        else if (t.amenity === 'hospital') checkMin('hospital', 'Medical Center', '24/7 emergency services');
+        else if (t.amenity === 'police') checkMin('police', 'Police Station', 'Emergency & public safety');
+      });
+
+      nearbyData = [
+        items.transport || { name: 'Transport Terminal', dist: 3, sub: 'Local bus & jeepney hub', speedKmh: walkingSpeed },
+        items.hotel || { name: 'Nearby Hotel', dist: 0.5, sub: 'Guest accommodations', speedKmh: walkingSpeed },
+        items.market || { name: 'Town Market & Shops', dist: 1.5, sub: 'Local vendors & shops', speedKmh: walkingSpeed },
+        items.hospital || { name: 'Medical Center', dist: 5, sub: '24/7 emergency services', speedKmh: walkingSpeed },
+        items.police || { name: 'Police Station', dist: 2, sub: 'Emergency & public safety', speedKmh: walkingSpeed }
+      ];
+
+      const icons = ['🚌', '🏨', '🏪', '🏥', '👮'];
+      nearbyData.forEach((d, i) => d.icon = icons[i]);
+
+      localStorage.setItem(cacheKey, JSON.stringify({ time: Date.now(), data: nearbyData }));
+    } catch (e) {
+      console.warn("Overpass API failed:", e);
+      return; // fallback to HTML defaults
+    }
+  }
+
+  // Render to DOM
+  const listEl = document.querySelector('.distance-list');
+  if (listEl && nearbyData) {
+    listEl.innerHTML = nearbyData.map(d => {
+      const timeMins = Math.max(1, Math.ceil((d.dist / d.speedKmh) * 60));
+      return `
+        <li class="distance-item">
+          <div class="distance-icon">${d.icon}</div>
+          <div>
+            <div class="distance-place">${d.name}</div>
+            <div style="font-size:0.78rem;color:var(--text-muted);">${d.sub}</div>
+          </div>
+          <span class="distance-km">${timeMins} min</span>
+        </li>
+      `;
+    }).join('');
+  }
+}
 
 // ── INITIALIZE SUPABASE FOR LIVE CHAT ─────────────────────────────────────────
 
@@ -75,7 +464,10 @@ const SUPA_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 window.supa = window.supabase.createClient(SUPA_URL, SUPA_ANON_KEY);
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-function fmtD(d) { return d instanceof Date ? d.toISOString().split('T')[0] : d; }
+function fmtD(d) {
+  if (!(d instanceof Date)) return d;
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
 function parseD(s) { const [y, m, dy] = s.split('-').map(Number); return new Date(y, m - 1, dy); }
 function readableDate(s) { return parseD(s).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }); }
 
@@ -112,65 +504,66 @@ const observer = new IntersectionObserver(
 document.querySelectorAll('.reveal,.reveal-left,.reveal-right').forEach(el => observer.observe(el));
 
 // ── VIRTUAL TOUR ──────────────────────────────────────────────────────────────
-const TOUR_DATA = {
-  'tb-suite': {
-    title: 'Beachfront Suite',
-    desc: 'Breathtaking 180-degree ocean views from your private balcony. Modern luxury meets the horizon.',
-    link: 'https://my.matterport.com/show/?m=example1'
-  },
-  'tb-cottage': {
-    title: 'Garden Cottage',
-    desc: 'Tucked away in lush tropical flora, offering the perfect blend of privacy and serenity.',
-    link: 'https://my.matterport.com/show/?m=example2'
-  },
-  'tb-villa': {
-    title: 'Sunset Villa',
-    desc: 'The crown jewel of Avellano\'s. Experience the most spectacular sunsets in total luxury.',
-    link: 'https://my.matterport.com/show/?m=example3'
-  },
+// Initial Data (Will be overwritten by refreshVirtualTour)
+window.TOUR_DATA = {
   'tb-beach': {
     title: 'Beach Area',
     desc: 'Powdery white sand and crystal clear turquoise water. Your playground awaits.',
-    link: 'https://my.matterport.com/show/?m=example4'
-  },
-  'tb-restaurant': {
-    title: 'Kainan sa Dagat',
-    desc: 'A culinary journey through Filipino heritage, served with the freshest ingredients and sea breeze.',
-    link: 'https://my.matterport.com/show/?m=example5'
+    link: '#'
   }
 };
 
 function setTourBg(btn) {
+  if (!btn) return;
   document.querySelectorAll('.tour-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   const key = btn.dataset.bg;
-  document.getElementById('tourBg').className = 'tour-bg ' + key;
+  
+  // Set background color/gradient based on key
+  const bgEl = document.getElementById('tourBg');
+  if (key.startsWith('room-')) bgEl.className = 'tour-bg tb-suite';
+  else if (key.startsWith('dining-')) bgEl.className = 'tour-bg tb-restaurant';
+  else bgEl.className = 'tour-bg ' + key;
 
   // Update text content with animation
   const title = document.getElementById('tourTitle');
   const desc = document.getElementById('tourDesc');
 
+  if (!window.TOUR_DATA[key]) return;
+
   title.style.opacity = 0; desc.style.opacity = 0;
   setTimeout(() => {
-    title.innerHTML = `Explore the <em>${TOUR_DATA[key].title}</em>`;
-    desc.textContent = TOUR_DATA[key].desc;
+    title.innerHTML = `Explore the <em>${window.TOUR_DATA[key].title}</em>`;
+    desc.textContent = window.TOUR_DATA[key].desc;
     title.style.opacity = 1; desc.style.opacity = 1;
   }, 300);
 }
 
 function launchTour() {
   const activeTab = document.querySelector('.tour-tab.active');
-  const link = TOUR_DATA[activeTab.dataset.bg].link;
-  // In a real app, this would open the 360 viewer modal or link
-  alert(`Launching 360° VR Tour for: ${TOUR_DATA[activeTab.dataset.bg].title}\n(Simulation: Connecting to ${link})`);
+  if (!activeTab) return;
+  const key = activeTab.dataset.bg;
+  const data = window.TOUR_DATA[key];
+  if (!data) return;
+  
+  if (data.link && data.link !== '#') {
+    window.open(data.link, '_blank');
+  } else {
+    alert(`Launching 360° VR Tour for: ${data.title}\n(Virtual Tour link not yet provided in Admin)`);
+  }
 }
 
 // ── RENDER ROOMS SECTION ──────────────────────────────────────────────────────
 
 async function renderRoomsSection() {
-  const rooms = (await ABHC_DB.getRooms()).filter(r => r.active);
   const grid = document.getElementById('roomsGrid');
-  grid.innerHTML = rooms.map((r, i) => `
+  // Skeleton Loader
+  grid.innerHTML = Array(3).fill(0).map((_, i) => `<div class="room-card skeleton stagger-${i+1}" style="height:450px;"></div>`).join('');
+  
+  _rooms = (await ABHC_DB.getRooms()).filter(r => r.active);
+  refreshVirtualTour();
+  
+  grid.innerHTML = _rooms.map((r, i) => `
     <article class="room-card reveal stagger-${i + 1}">
       <div class="room-img ${r.img}">
         <div class="room-img ${r.img ? 'has-photo' : r.img || 'cottage'}">
@@ -204,16 +597,27 @@ const REVIEWS = [
   { stars: 4, text: 'Pristine beach, crystal water, and the freshest seafood I\'ve ever tasted. We\'re coming back every year.', guest: 'Sophie L. · Paris' },
   { stars: 5, text: 'From booking to checkout, everything was seamless and thoughtful. This place truly cares about guests.', guest: 'Daniel K. · London' },
 ];
-(function renderReviews() {
+function renderReviews(cmsMap) {
   const track = document.getElementById('reviewsTrack');
-  const doubled = [...REVIEWS, ...REVIEWS];
+  if (!track) return;
+
+  let list = REVIEWS; // Default fallback
+  if (cmsMap && cmsMap['reviews_list']) {
+    try {
+      list = typeof cmsMap['reviews_list'] === 'string' ? JSON.parse(cmsMap['reviews_list']) : cmsMap['reviews_list'];
+    } catch (e) { console.warn("Failed to parse reviews list:", e); }
+  }
+
+  const doubled = [...list, ...list];
   track.innerHTML = doubled.map(r => `
     <div class="review-card">
       <div class="review-stars">${'★'.repeat(r.stars)}${'☆'.repeat(5 - r.stars)}</div>
       <p class="review-text">"${r.text}"</p>
       <div class="review-guest">— ${r.guest}</div>
     </div>`).join('');
-})();
+}
+// Initial call with fallback
+renderReviews();
 
 // ── BOOKING STATE ─────────────────────────────────────────────────────────────
 let ROOMS = [];
@@ -322,6 +726,7 @@ function switchTab(tab) {
   document.getElementById('tabBtn-' + tab).classList.add('active');
   document.getElementById('tab-' + tab).classList.add('active');
   if (tab === 'room') renderRoomsTab();
+  if (tab === 'calendar') { renderCal('cal1', off1); renderCal('cal2', off2); updateSummary(); }
   if (tab === 'confirm') renderConfirm();
 }
 
@@ -349,7 +754,6 @@ async function renderRoomsTab() {
     const total = (r.price24h * nights * qtyInCart).toLocaleString();
 
     let unitSelectHtml = '';
-    // Find booked units for this room during this timeframe
     const bookedUnits = new Set();
     let d = new Date(ci);
     const end = new Date(co);
@@ -369,14 +773,8 @@ async function renderRoomsTab() {
     }
 
     if (qtyInCart > 0 && r.unitIds && r.unitIds.length > 0) {
-      // Filter out units that are currently booked
       let availableUnits = r.unitIds.filter(u => !bookedUnits.has(u));
-
-      // Trim unassigned generic bookings so options never exceed physical availability
-      if (availableUnits.length > avail) {
-        availableUnits = availableUnits.slice(0, avail);
-      }
-
+      if (availableUnits.length > avail) availableUnits = availableUnits.slice(0, avail);
       const options = availableUnits.map(u => `<option value="${u}">${u}</option>`).join('');
       unitSelectHtml = `
         <div style="margin-top:1.2rem;text-align:left;">
@@ -409,6 +807,7 @@ async function renderRoomsTab() {
   const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
   btn.style.display = totalItems > 0 ? 'block' : 'none';
 }
+
 
 function pickRoom(id) {
   selRoom = id;
@@ -498,11 +897,11 @@ async function submitReservation() {
   const ph = document.getElementById('guestPhone').value.trim();
   const req = document.getElementById('guestReq').value.trim();
 
-  if (!fn || !ln || !em) { alert('Please fill in your name and email to proceed.'); return; }
+  if (!fn || !ln || !em) { showToast('Please fill in your name and email to proceed.', 'warning'); return; }
 
   // Make sure they have selected at least one room
   const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
-  if (!selIn || !selOut || totalItems === 0) { alert('Please complete all steps and select at least one room.'); return; }
+  if (!selIn || !selOut || totalItems === 0) { showToast('Please complete all steps and select at least one room.', 'warning'); return; }
 
   const nights = Math.round((parseD(selOut) - parseD(selIn)) / 86400000);
   const ref = 'ABHC-' + Date.now().toString(36).toUpperCase().slice(-6);
@@ -548,7 +947,7 @@ async function submitReservation() {
   try {
     await ABHC_DB.addBooking(bookingsArray);
   } catch (err) {
-    alert('Booking failed: ' + err.message);
+    showToast('Booking failed: ' + err.message, 'error');
     return;
   }
 
@@ -577,6 +976,10 @@ async function submitReservation() {
 async function loadApprovedFeed() {
   const container = document.getElementById('liveGuestFeed');
   if (!container) return;
+  
+  // Skeleton Loader
+  container.innerHTML = Array(4).fill(0).map(() => `<div class="room-card skeleton" style="height:300px;border-radius:12px;"></div>`).join('');
+  
   try {
     const res = await fetch('/api/guest-feed?status=approved');
     const posts = await res.json();
@@ -601,7 +1004,7 @@ async function submitFeedPost() {
   const btn = document.getElementById('feedSubmitBtn');
 
   if (!name || !fileInput.files[0]) {
-    alert("Please provide your name and select a photo!");
+    showToast("Please provide your name and select a photo!", 'warning');
     return;
   }
 
@@ -630,7 +1033,7 @@ async function submitFeedPost() {
       if (!res.ok) throw new Error('Upload failed');
 
       // The new success message!
-      alert("Your post has been submitted and will be reviewed for approval. Thank you for sharing your story!");
+      showToast("Your post has been submitted and will be reviewed for approval. Thank you for sharing your story!", 'success');
 
       // Clear the form
       document.getElementById('feedName').value = '';
@@ -643,7 +1046,7 @@ async function submitFeedPost() {
       document.getElementById('openFeedFormBtn').style.display = 'inline-block';
 
     } catch (err) {
-      alert("Error: " + err.message);
+      showToast("Error: " + err.message, 'error');
     } finally {
       btn.textContent = "Submit Story";
       btn.disabled = false;
@@ -723,7 +1126,7 @@ async function toggleGuestChat() {
   win.classList.toggle('open');
   if (win.classList.contains('open') && document.getElementById('guestChatBody').innerHTML === '') {
     kbData = await ABHC_DB.getKB();
-    appendMsg('bot', "Hi! I'm the Avellano's virtual assistant. How can I help you today?");
+    appendMsg('bot', `Hi! I'm the ${_businessName}'s virtual assistant. How can I help you today?`);
   }
 }
 
@@ -790,7 +1193,7 @@ async function submitPreChat() {
   const phone = document.getElementById('pcPhone').value.trim();
   const ref = document.getElementById('pcRef').value.trim();
 
-  if (!name || !email) return alert("Name and Email are required.");
+  if (!name || !email) return showToast("Name and Email are required.", 'warning');
 
   document.getElementById('prechatForm').style.display = 'none';
   appendMsg('sys', 'Creating case...');
@@ -829,8 +1232,12 @@ function setupGuestRealtime() {
           // Hide internal reassignment messages from the guest
           if (payload.new.sender_type === 'system' && payload.new.message.includes('ownership transferred')) return;
 
+          // Replace raw system status messages with a friendly guest-facing message
           const typeMap = { 'system': 'sys', 'bot': 'bot', 'staff': 'bot' };
-          appendMsg(typeMap[payload.new.sender_type], payload.new.message, payload.new.created_at);
+          const isClosureMsg = payload.new.sender_type === 'system' &&
+            (payload.new.message.includes('RESOLVED') || payload.new.message.includes('ABANDONED') || payload.new.message.includes('CLOSED'));
+          const displayMsg = isClosureMsg ? '[ Staff has left the conversation ]' : payload.new.message;
+          appendMsg(typeMap[payload.new.sender_type], displayMsg, payload.new.created_at);
 
           playNotificationSound();
 
@@ -898,3 +1305,133 @@ async function endGuestChat(silent = false) {
 // ── INIT CALENDARS ────────────────────────────────────────────────────────────
 renderCal('cal1', off1);
 renderCal('cal2', off2);
+
+// ── UX ENHANCEMENTS (Preloader, Scroll Progress, Magnetic, Toast) ─────────────
+
+// Toast Implementation
+function showToast(message, type = 'success', duration = 4000) {
+  let container = document.querySelector('.toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `
+    <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : '⚠️'}</span>
+    <span style="flex:1;">${message}</span>
+    <div class="toast-progress"></div>
+  `;
+  container.appendChild(toast);
+  
+  // Progress bar animation
+  const progress = toast.querySelector('.toast-progress');
+  progress.style.transition = `transform ${duration}ms linear`;
+  setTimeout(() => progress.style.transform = 'scaleX(0)', 10);
+  
+  // Swipe to dismiss
+  let startX = 0;
+  toast.addEventListener('touchstart', e => startX = e.touches[0].clientX);
+  toast.addEventListener('touchmove', e => {
+    const diffX = e.touches[0].clientX - startX;
+    if (diffX > 0) toast.style.transform = `translateX(${diffX}px)`;
+  });
+  toast.addEventListener('touchend', e => {
+    if (e.changedTouches[0].clientX - startX > 50) {
+      toast.style.animation = 'toastOut 0.3s forwards';
+      setTimeout(() => toast.remove(), 300);
+    } else {
+      toast.style.transform = 'translateX(0)';
+    }
+  });
+
+  setTimeout(() => {
+    if (toast.parentElement) {
+      toast.style.animation = 'toastOut 0.35s forwards';
+      setTimeout(() => toast.remove(), 350);
+    }
+  }, duration);
+}
+
+// Preloader Fade-out
+window.addEventListener('load', () => {
+  const preloader = document.getElementById('preloader');
+  if (preloader) {
+    setTimeout(() => {
+      preloader.classList.add('fade-out');
+      setTimeout(() => preloader.style.display = 'none', 800);
+    }, 500); // Minimum display time
+  }
+});
+
+// Mobile Menu Toggle
+function toggleMobileMenu() {
+  const nav = document.getElementById('navLinks');
+  const toggle = document.getElementById('mobileNavToggle');
+  if (nav) nav.classList.toggle('open');
+  if (toggle) toggle.classList.toggle('open');
+}
+
+// Scroll Handling
+window.addEventListener('scroll', () => {
+  // 1. Scroll Progress Bar
+  const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+  const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+  const scrolled = (winScroll / height) * 100;
+  const pb = document.getElementById('scroll-progress');
+  if (pb) pb.style.width = scrolled + '%';
+
+  // 2. Mobile Menu Auto-close
+  const nav = document.getElementById('navLinks');
+  const toggle = document.getElementById('mobileNavToggle');
+  if (nav && nav.classList.contains('open') && window.scrollY > 20) {
+    nav.classList.remove('open');
+    if (toggle) toggle.classList.remove('open');
+  }
+});
+
+// Magnetic Buttons
+document.querySelectorAll('.magnetic').forEach(btn => {
+  btn.addEventListener('mousemove', e => {
+    const rect = btn.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    btn.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px)`;
+  });
+  btn.addEventListener('mouseleave', () => {
+    btn.style.transform = `translate(0px, 0px)`;
+  });
+});
+
+// ── BOOKING ENGINE INIT ───────────────────────────────────────────────────────
+// Load rooms immediately (Step 1 is now Choose Room)
+renderRoomsTab();
+
+// ── NIGHT VIEW (DARK MODE) LOGIC ──
+function initDarkMode() {
+  const toggle = document.getElementById('darkModeToggle');
+  const icon = document.getElementById('darkModeIcon');
+  if (!toggle) return;
+
+  const savedMode = localStorage.getItem('abhc_mode');
+  if (savedMode === 'dark') {
+    document.documentElement.setAttribute('data-mode', 'dark');
+    if (icon) icon.textContent = '☀️';
+  }
+
+  toggle.onclick = (e) => {
+    e.preventDefault();
+    const isDark = document.documentElement.getAttribute('data-mode') === 'dark';
+    if (isDark) {
+      document.documentElement.removeAttribute('data-mode');
+      localStorage.setItem('abhc_mode', 'light');
+      if (icon) icon.textContent = '🌙';
+    } else {
+      document.documentElement.setAttribute('data-mode', 'dark');
+      localStorage.setItem('abhc_mode', 'dark');
+      if (icon) icon.textContent = '☀️';
+    }
+  };
+}
+

@@ -25,3 +25,9 @@ CREATE POLICY "Allow authenticated write on site_content"
   ON site_content FOR ALL
   USING (auth.role() = 'authenticated')
   WITH CHECK (auth.role() = 'authenticated');
+
+-- ============================================================
+-- ENABLE REALTIME FOR CHAT MODULE (Fixes manual refresh issue)
+-- ============================================================
+ALTER PUBLICATION supabase_realtime ADD TABLE support_cases;
+ALTER PUBLICATION supabase_realtime ADD TABLE support_messages;

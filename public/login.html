@@ -2,12 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Avellano's – Admin Login</title>
+  <title>Admin Login</title>
+  
+  <!-- Prevent Name Flash -->
+  <script>
+    try {
+      const scRaw = localStorage.getItem('ABHC_siteContent');
+      if (scRaw) {
+        const parsed = JSON.parse(scRaw);
+        if (parsed && parsed.data && Array.isArray(parsed.data)) {
+          const bizItem = parsed.data.find(i => i.key === 'business_name');
+          if (bizItem && bizItem.value) {
+            document.title = bizItem.value + ' – Admin Login';
+          }
+        }
+      }
+    } catch (e) {}
+  </script>
+
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/main.css">
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
+
   <style>
     body { background: var(--aqua-deep); display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
     .login-card { background: white; padding: 3rem 2.5rem; border-radius: 20px; width: 100%; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); text-align: center; }
@@ -21,7 +38,28 @@
 <body>
 
   <div class="login-card">
-    <div class="login-logo">Avellano's <span>Beach Hut</span></div>
+    <div class="login-logo" id="loginLogoText"><span>Secure Admin</span></div>
+    <script>
+      try {
+        const scRaw = localStorage.getItem('ABHC_siteContent');
+        if (scRaw) {
+          const parsed = JSON.parse(scRaw);
+          if (parsed && parsed.data && Array.isArray(parsed.data)) {
+            const bizItem = parsed.data.find(i => i.key === 'business_name');
+            if (bizItem && bizItem.value) {
+              const words = bizItem.value.split(' ');
+              const logoEl = document.getElementById('loginLogoText');
+              if (words.length > 1) {
+                const first = words.shift();
+                logoEl.innerHTML = `${first} <span>${words.join(' ')}</span>`;
+              } else {
+                logoEl.innerHTML = bizItem.value;
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    </script>
     <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:2rem;letter-spacing:0.05em;text-transform:uppercase;">Secure Admin Portal</p>
 
     <form id="loginForm">

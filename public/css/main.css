@@ -189,26 +189,26 @@
 }
 
 /* Volcanic Ash Overrides for Hardcoded White Backgrounds in guest.css */
-[data-theme="volcanic_ash"] .booking-section .section-title,
-[data-theme="volcanic_ash"] .reviews-section .section-title,
-[data-theme="volcanic_ash"] .room-card .room-opt-name,
-[data-theme="volcanic_ash"] .dining-card .dining-name,
-[data-theme="volcanic_ash"] .cal-day,
-[data-theme="volcanic_ash"] .cal-title,
-[data-theme="volcanic_ash"] .summary-row,
-[data-theme="volcanic_ash"] .tour-inner .section-title {
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .booking-section .section-title,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .reviews-section .section-title,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .room-card .room-opt-name,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .dining-card .dining-name,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .cal-day,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .cal-title,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .summary-row,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .tour-inner .section-title {
   color: #18181B !important;
 }
 
-[data-theme="volcanic_ash"] .booking-section .section-sub,
-[data-theme="volcanic_ash"] .reviews-section .section-sub,
-[data-theme="volcanic_ash"] .room-card .room-opt-cap,
-[data-theme="volcanic_ash"] .dining-card .dining-desc,
-[data-theme="volcanic_ash"] .cal-day.empty,
-[data-theme="volcanic_ash"] .cal-day.past,
-[data-theme="volcanic_ash"] .tour-inner .section-sub,
-[data-theme="volcanic_ash"] .tour-inner .section-label,
-[data-theme="volcanic_ash"] .summary-label {
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .booking-section .section-sub,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .reviews-section .section-sub,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .room-card .room-opt-cap,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .dining-card .dining-desc,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .cal-day.empty,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .cal-day.past,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .tour-inner .section-sub,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .tour-inner .section-label,
+html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .summary-label {
   color: #52525B !important;
 }
 
@@ -237,26 +237,26 @@
 }
 
 /* Royal Gold Overrides for Hardcoded White Backgrounds in guest.css */
-[data-theme="royal_gold"] .booking-section .section-title,
-[data-theme="royal_gold"] .reviews-section .section-title,
-[data-theme="royal_gold"] .room-card .room-opt-name,
-[data-theme="royal_gold"] .dining-card .dining-name,
-[data-theme="royal_gold"] .cal-day,
-[data-theme="royal_gold"] .cal-title,
-[data-theme="royal_gold"] .summary-row,
-[data-theme="royal_gold"] .tour-inner .section-title {
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .booking-section .section-title,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .reviews-section .section-title,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .room-card .room-opt-name,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .dining-card .dining-name,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .cal-day,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .cal-title,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .summary-row,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .tour-inner .section-title {
   color: #121212 !important;
 }
 
-[data-theme="royal_gold"] .booking-section .section-sub,
-[data-theme="royal_gold"] .reviews-section .section-sub,
-[data-theme="royal_gold"] .room-card .room-opt-cap,
-[data-theme="royal_gold"] .dining-card .dining-desc,
-[data-theme="royal_gold"] .cal-day.empty,
-[data-theme="royal_gold"] .cal-day.past,
-[data-theme="royal_gold"] .tour-inner .section-sub,
-[data-theme="royal_gold"] .tour-inner .section-label,
-[data-theme="royal_gold"] .summary-label {
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .booking-section .section-sub,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .reviews-section .section-sub,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .room-card .room-opt-cap,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .dining-card .dining-desc,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .cal-day.empty,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .cal-day.past,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .tour-inner .section-sub,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .tour-inner .section-label,
+html:not([data-mode="dark"]) [data-theme="royal_gold"] .summary-label {
   color: #333333 !important;
 }
 

@@ -30,7 +30,10 @@
     if (!targets.length) return;
 
     targets.forEach(function(el) {
-      el.style.position = 'relative';
+      var currentElPos = window.getComputedStyle(el).position;
+      if (currentElPos !== 'absolute' && currentElPos !== 'fixed') {
+        el.style.position = 'relative';
+      }
       el.style.overflow = 'hidden';
       el.querySelectorAll('.theme-anim-layer').forEach(function(old) { old.remove(); });
       

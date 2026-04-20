@@ -15,12 +15,26 @@ const ABHC_DB = (() => {
 
   // ── HTTP helper ────────────────────────────────────────────────────────────
   async function req(path, method = 'GET', body = null, params = {}) {
-    const url = new URL(path, location.origin);
+    // Use direct Netlify function paths to bypass potential local redirect issues
+    const functionPath = path.startsWith('/api/') 
+      ? path.replace('/api/', '/.netlify/functions/') 
+      : path;
+      
+    const url = new URL(functionPath, location.origin);
     Object.entries(params).forEach(([k, v]) => v !== undefined && url.searchParams.set(k, v));
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (body) opts.body = JSON.stringify(body);
+    
     const res = await fetch(url, opts);
-    const data = await res.json();
+    const text = await res.text();
+    
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw new Error(`Invalid response from server: ${text.substring(0, 50)}`);
+    }
+    
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
     return data;
   }

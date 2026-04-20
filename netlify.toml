@@ -75,3 +75,4 @@
   from = "/api/site-content/*"
   to = "/.netlify/functions/site-content"
   status = 200
+ 
