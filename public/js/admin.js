@@ -2692,7 +2692,7 @@ async function renderSiteEditor() {
   <!-- ── REVIEWS ── -->
   <div class="se-section">
     <div class="se-section-label">Guest Reviews Management</div>
-    <div class="reviews-section" style="border-radius:16px; overflow:hidden; padding:2.5rem 1.5rem; background:white;">
+    <div class="reviews-section" style="border-radius:16px; overflow:hidden; padding:2.5rem 1.5rem; background:var(--white);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
         <div>
            <span class="section-label se-editable" contenteditable="true" data-se-key="reviews_label">${v('reviews_label', 'Guest Stories')}</span>
@@ -2912,9 +2912,9 @@ function renderActivitiesEditor() {
   grid.innerHTML = _activitiesList.map((a, idx) => `
     <div class="activity-card" style="position:relative; background:rgba(255,255,255,0.05);">
       <button class="btn btn-danger btn-xs" style="position:absolute; top:0.5rem; right:0.5rem; z-index:10; border-radius:50%; width:24px; height:24px; padding:0; display:flex; align-items:center; justify-content:center; line-height:1;" onclick="removeActivityItem(${idx})">×</button>
-      <div class="se-editable-box" contenteditable="true" oninput="_activitiesList[${idx}].icon = this.innerText" style="font-size:1.5rem; margin-bottom:0.5rem; text-align:center; border:none; outline:none; cursor:default;">${a.icon || '✨'}</div>
-      <div class="se-editable-box" contenteditable="true" oninput="_activitiesList[${idx}].name = this.innerText" placeholder="Activity Name" style="font-weight:600; text-align:center; border:none; color:white;">${a.name || ''}</div>
-      <div class="se-editable-box" contenteditable="true" oninput="_activitiesList[${idx}].desc = this.innerText" placeholder="Description" style="font-size:0.8rem; color:rgba(255,255,255,0.7); text-align:center; border:none; min-height:40px;">${a.desc || ''}</div>
+      <div class="se-editable-box activity-icon" contenteditable="true" oninput="_activitiesList[${idx}].icon = this.innerText" style="font-size:1.5rem; margin-bottom:0.5rem; text-align:center; border:none; outline:none; cursor:default;">${a.icon || '✨'}</div>
+      <div class="se-editable-box activity-name" contenteditable="true" oninput="_activitiesList[${idx}].name = this.innerText" placeholder="Activity Name" style="font-weight:600; text-align:center; border:none; color:white;">${a.name || ''}</div>
+      <div class="se-editable-box activity-desc" contenteditable="true" oninput="_activitiesList[${idx}].desc = this.innerText" placeholder="Description" style="font-size:0.8rem; color:rgba(255,255,255,0.7); text-align:center; border:none; min-height:40px;">${a.desc || ''}</div>
     </div>
   `).join('');
 }
@@ -2961,10 +2961,10 @@ function renderDiningEditor() {
         <input type="file" id="seDiningImg_${idx}" style="display:none;" accept="image/*" onchange="handleDiningImageUpload(this, ${idx})">
       </div>
       <div class="dining-body" style="padding:1rem;">
-        <div class="se-editable-box" contenteditable="true" oninput="_diningList[${idx}].name = this.innerText" placeholder="Name">${d.name || ''}</div>
-        <div class="se-editable-box" contenteditable="true" oninput="_diningList[${idx}].type = this.innerText" placeholder="Type" style="color:var(--sunset); font-weight:600; font-size:0.75rem; text-transform:uppercase;">${d.type || ''}</div>
-        <div class="se-editable-box" contenteditable="true" oninput="_diningList[${idx}].desc = this.innerText" placeholder="Description" style="font-size:0.85rem; color:var(--text-muted); min-height:60px;">${d.desc || ''}</div>
-        <div class="se-editable-box" contenteditable="true" oninput="_diningList[${idx}].hours = this.innerText" placeholder="Hours" style="font-size:0.75rem; color:var(--text-muted);">${d.hours || ''}</div>
+        <div class="se-editable-box dining-name" contenteditable="true" oninput="_diningList[${idx}].name = this.innerText" placeholder="Name">${d.name || ''}</div>
+        <div class="se-editable-box dining-type" contenteditable="true" oninput="_diningList[${idx}].type = this.innerText" placeholder="Type" style="color:var(--sunset); font-weight:600; font-size:0.75rem; text-transform:uppercase;">${d.type || ''}</div>
+        <div class="se-editable-box dining-desc" contenteditable="true" oninput="_diningList[${idx}].desc = this.innerText" placeholder="Description" style="font-size:0.85rem; color:var(--text-muted); min-height:60px;">${d.desc || ''}</div>
+        <div class="se-editable-box dining-hours" contenteditable="true" oninput="_diningList[${idx}].hours = this.innerText" placeholder="Hours" style="font-size:0.75rem; color:var(--text-muted);">${d.hours || ''}</div>
       </div>
     </div>
   `).join('');
@@ -3017,11 +3017,11 @@ function renderReviewsEditor() {
   }
 
   grid.innerHTML = _reviewsList.map((r, idx) => `
-    <div class="review-card" style="position:relative; background:#f8fafc; border:1px solid #e2e8f0; padding:1.5rem; border-radius:12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    <div class="review-card" style="position:relative; background:var(--sand); border:1px solid var(--sand-mid); padding:1.5rem; border-radius:12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
       <button class="btn btn-danger btn-xs" style="position:absolute; top:0.5rem; right:0.5rem; z-index:10; border-radius:50%; width:22px; height:22px; padding:0; display:flex; align-items:center; justify-content:center; line-height:1;" onclick="removeReviewItem(${idx})">×</button>
       <div class="se-editable-box" contenteditable="true" oninput="_reviewsList[${idx}].stars = Math.min(5, Math.max(1, parseInt(this.innerText.length) || 5))" style="color:#F59E0B; font-size:1.2rem; margin-bottom:0.5rem; border:none; outline:none; letter-spacing:2px;">${'★'.repeat(r.stars)}</div>
-      <div class="se-editable-box" contenteditable="true" oninput="_reviewsList[${idx}].text = this.innerText" style="font-size:0.9rem; font-style:italic; line-height:1.5; margin-bottom:1rem; min-height:60px; color:var(--text-deep); border:none; outline:none;">${r.text || ''}</div>
-      <div class="se-editable-box" contenteditable="true" oninput="_reviewsList[${idx}].guest = this.innerText" style="font-size:0.8rem; font-weight:600; color:var(--text-muted); border:none; outline:none;">${r.guest || ''}</div>
+      <div class="se-editable-box review-text" contenteditable="true" oninput="_reviewsList[${idx}].text = this.innerText" style="font-size:0.9rem; font-style:italic; line-height:1.5; margin-bottom:1rem; min-height:60px; border:none; outline:none;">${r.text || ''}</div>
+      <div class="se-editable-box review-guest" contenteditable="true" oninput="_reviewsList[${idx}].guest = this.innerText" style="font-size:0.8rem; font-weight:600; border:none; outline:none;">${r.guest || ''}</div>
     </div>
   `).join('');
 }
@@ -3391,32 +3391,48 @@ initStaffRole().then(() => {
 });
 
 // ── STAFF LIST RENDERING ──────────────────────────────────────────────────────
+window.staffListData = [];
 async function renderStaffList() {
-  const { data, error } = await window.supa.from('staff_profiles').select('*');
-  if (error) { toast('Error loading staff: ' + error.message, 'error'); return; }
-  document.getElementById('empTbody').innerHTML = data.map(s => `
-    <tr>
-      <td style="font-family:monospace; font-weight:600; color:var(--sunset);">${s.emp_id || '---'}</td>
-      <td>${s.first_name}</td>
-      <td>${s.last_name}</td>
-      <td><span class="badge ${s.role === 'master' ? 'badge-confirmed' : 'badge-pending'}">${s.role.toUpperCase()}</span></td>
-      <td style="display:flex; gap:0.5rem;">
-        <button class="btn btn-ghost btn-xs" onclick="openStaffEditModal('${s.id}')">✏️ Edit</button>
-        <button class="btn btn-danger btn-xs" onclick="deleteStaff('${s.id}')">🗑 Remove</button>
-      </td>
-    </tr>
-  `).join('');
+  try {
+    const { data: { session } } = await window.supa.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const res = await fetch('/api/get-employees', {
+      headers: { 'Authorization': `Bearer ${session.access_token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load staff");
+
+    window.staffListData = data;
+
+    document.getElementById('empTbody').innerHTML = data.map(s => `
+      <tr>
+        <td style="font-family:monospace; font-weight:600; color:var(--sunset);">${s.emp_id || '---'}</td>
+        <td>${s.first_name}</td>
+        <td>${s.last_name}</td>
+        <td>${s.email || '---'}</td>
+        <td><span class="badge ${s.role === 'master' ? 'badge-confirmed' : 'badge-pending'}">${s.role.toUpperCase()}</span></td>
+        <td style="display:flex; gap:0.5rem;">
+          <button class="btn btn-ghost btn-xs" onclick="openStaffEditModal('${s.id}')">✏️ Edit</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteStaff('${s.id}')">🗑 Remove</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    toast('Error loading staff: ' + err.message, 'error');
+  }
 }
 
 window.openStaffEditModal = async function (id) {
   try {
-    const { data, error } = await window.supa.from('staff_profiles').select('*').eq('id', id).single();
-    if (error) throw error;
+    const data = window.staffListData.find(s => s.id === id);
+    if (!data) throw new Error("Staff not found in local list.");
 
     document.getElementById('editStaffId').value = data.id;
     document.getElementById('editStaffFName').value = data.first_name;
     document.getElementById('editStaffLName').value = data.last_name;
     document.getElementById('editStaffPhone').value = data.phone || '';
+    document.getElementById('editStaffEmail').value = data.email || '';
     document.getElementById('editStaffEmpId').value = data.emp_id || '---';
 
     openModal('staffEditModal');

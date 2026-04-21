@@ -568,13 +568,13 @@ footer { background: linear-gradient(135deg, var(--aqua-deep), var(--aqua-dark))
 .chat-close:hover { background: rgba(255,255,255,0.15); }
 .chat-body { flex: 1; padding: 1rem; overflow-y: auto; background: var(--bg); display: flex; flex-direction: column; gap: 0.8rem; scroll-behavior: smooth; }
 .chat-msg { max-width: 80%; padding: 0.8rem 1rem; border-radius: 12px; font-size: 0.85rem; line-height: 1.4; }
-.msg-bot { background: white; border: 1px solid var(--sand-mid); align-self: flex-start; border-bottom-left-radius: 2px; }
+.msg-bot { background: white; border: 1px solid var(--sand-mid); align-self: flex-start; border-bottom-left-radius: 2px; color: #1A1A1A; }
 .msg-guest { background: var(--aqua-light); color: var(--aqua-deep); align-self: flex-end; border-bottom-right-radius: 2px; }
 .msg-sys { background: var(--sand); color: var(--text-muted); align-self: center; font-size: 0.75rem; text-align: center; border-radius: 50px; }
-.chat-input-area { padding: 1rem; background: white; border-top: 1px solid var(--sand-mid); display: flex; gap: 0.5rem; }
+.chat-input-area { padding: 1rem; background: white; border-top: 1px solid var(--sand-mid); display: flex; gap: 0.5rem; color: #1A1A1A; }
 .chat-input { flex: 1; padding: 0.6rem; border: 1px solid var(--sand-mid); border-radius: 8px; outline: none; font-family: inherit; font-size: 0.85rem; }
 .chat-send { background: var(--aqua-deep); color: white; border: none; padding: 0 1rem; border-radius: 8px; cursor: pointer; }
-.prechat-form { background: white; padding: 1rem; border-radius: 8px; border: 1px solid var(--sand-mid); display: flex; flex-direction: column; gap: 0.5rem; }
+.prechat-form { background: white; padding: 1rem; border-radius: 8px; border: 1px solid var(--sand-mid); display: flex; flex-direction: column; gap: 0.5rem; color: #1A1A1A; }
 
 /* PRELOADER */
 #preloader {
@@ -653,62 +653,4 @@ footer { background: linear-gradient(135deg, var(--aqua-deep), var(--aqua-dark))
   .tour-inner, .location-inner, .dining-grid { grid-template-columns: 1fr; }
   .form-row  { grid-template-columns: 1fr; }
 }
-
-/* NIGHT VIEW (DARK MODE) */
-html[data-mode="dark"] {
-  --bg: #0b1211 !important;
-  --white: #142423 !important;
-  --white-pure: #142423 !important;
-  --sand: #1a2a29 !important;
-  --sand-mid: #2a3d3c !important;
-  --text-dark: #f0f7f6 !important;
-  --text-mid: #d1dbda !important;
-  --text-muted: #8ba3a1 !important;
-  --aqua-light: rgba(78, 198, 192, 0.12) !important;
-  --glass-bg: rgba(11, 18, 17, 0.96) !important;
-  --hero-sub-text: rgba(255, 255, 255, 0.7) !important;
-}
-
-[data-mode="dark"] body { background-color: var(--bg); color: var(--text-mid); }
-
-[data-mode="dark"] .sticky-book.scrolled {
-  background: var(--glass-bg);
-  border-bottom: 1px solid rgba(78, 198, 192, 0.15);
-}
-
-[data-mode="dark"] .room-card, 
-[data-mode="dark"] .dining-card, 
-[data-mode="dark"] .activity-card,
-[data-mode="dark"] .card,
-[data-mode="dark"] .booking-card {
-  background: var(--white) !important;
-  border-color: var(--sand-mid) !important;
-  box-shadow: 0 15px 45px rgba(0,0,0,0.4) !important;
-}
-
-[data-mode="dark"] .section-title,
-[data-mode="dark"] .room-name,
-[data-mode="dark"] .dining-name,
-[data-mode="dark"] .cal-title,
-[data-mode="dark"] .summary-title {
-  color: var(--text-dark) !important;
-}
-
-[data-mode="dark"] .section-sub,
-[data-mode="dark"] .perk-desc,
-[data-mode="dark"] .room-desc,
-[data-mode="dark"] .dining-desc,
-[data-mode="dark"] .cal-dow {
-  color: var(--text-muted) !important;
-}
-
-[data-mode="dark"] .booking-tab { color: var(--text-muted); }
-[data-mode="dark"] .booking-tab.active { background: var(--white); color: var(--aqua); }
-
-[data-mode="dark"] .cal-day { color: var(--text-mid); }
-[data-mode="dark"] .cal-day.empty { background: transparent; }
-[data-mode="dark"] .cal-day:not(.past):hover { background: var(--aqua-light); color: var(--text-dark); }
-[data-mode="dark"] .cal-nav { color: var(--text-mid); border-color: var(--sand-mid); }
-
-[data-mode="dark"] .nav-links.open { background: var(--bg); }
-[data-mode="dark"] .nav-links a { color: var(--text-dark) !important; }
+

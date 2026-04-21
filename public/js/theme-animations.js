@@ -25,7 +25,7 @@
 
   function injectAnimations(theme) {
     var targets = document.querySelectorAll(
-      '.hero-bg, .activities-section, .contact-section'
+      '.hero-bg, .activities-section, .contact-section, .sidebar'
     );
     if (!targets.length) return;
 

@@ -164,7 +164,7 @@
   --text-mid: #334155;
   --text-muted: #94A3B8;
   --bg: #FAFAFC;
-  --font-serif: 'Bodoni Moda', serif;
+  --font-serif: 'Prata', serif;
   --font-sans: 'Work Sans', sans-serif;
 }
 
@@ -181,35 +181,53 @@
   --sand-mid: #52525B;
   --sand-dark: #DC2626;
   --text-dark: #F4F4F5;
-  --text-mid: #A1A1AA;
-  --text-muted: #71717A;
+  --text-mid: #D4D4D8; /* Lightened for better contrast */
+  --text-muted: #A1A1AA; /* Lightened for better contrast */
   --bg: #18181B;
   --font-serif: 'Syne', sans-serif;
   --font-sans: 'Inter', sans-serif;
 }
 
 /* Volcanic Ash Overrides for Hardcoded White Backgrounds in guest.css */
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .booking-section .section-title,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .reviews-section .section-title,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .room-card .room-opt-name,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .dining-card .dining-name,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .cal-day,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .cal-title,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .summary-row,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .tour-inner .section-title {
-  color: #18181B !important;
+[data-theme="volcanic_ash"] .booking-section .section-title,
+[data-theme="volcanic_ash"] .reviews-section .section-title,
+[data-theme="volcanic_ash"] .room-card .room-opt-name,
+[data-theme="volcanic_ash"] .dining-card .dining-name,
+[data-theme="volcanic_ash"] .cal-day,
+[data-theme="volcanic_ash"] .cal-title,
+[data-theme="volcanic_ash"] .summary-row,
+[data-theme="volcanic_ash"] .section-title {
+  color: #FFFFFF !important;
 }
 
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .booking-section .section-sub,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .reviews-section .section-sub,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .room-card .room-opt-cap,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .dining-card .dining-desc,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .cal-day.empty,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .cal-day.past,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .tour-inner .section-sub,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .tour-inner .section-label,
-html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .summary-label {
-  color: #52525B !important;
+[data-theme="volcanic_ash"] .booking-section .section-sub,
+[data-theme="volcanic_ash"] .reviews-section .section-sub,
+[data-theme="volcanic_ash"] .room-card .room-opt-cap,
+[data-theme="volcanic_ash"] .dining-card .dining-desc,
+[data-theme="volcanic_ash"] .cal-day.empty,
+[data-theme="volcanic_ash"] .summary-label,
+[data-theme="volcanic_ash"] .section-sub {
+  color: #D4D4D8 !important;
+}
+
+[data-theme="volcanic_ash"] .cal-day {
+  color: #FFFFFF !important;
+}
+[data-theme="volcanic_ash"] .cal-day.past {
+  color: #333333 !important;
+}
+[data-theme="volcanic_ash"] .cal-day.selected {
+  background: #DC2626 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0 15px rgba(220, 38, 38, 0.5) !important;
+}
+[data-theme="volcanic_ash"] .cal-day.in-range {
+  background: rgba(220, 38, 38, 0.15) !important;
+  color: #FFFFFF !important;
+}
+[data-theme="volcanic_ash"] .cal-day:not(.empty):not(.past):hover {
+  background: rgba(220, 38, 38, 0.25) !important;
+  color: #FFFFFF !important;
 }
 
 
@@ -233,56 +251,260 @@ html:not([data-mode="dark"]) [data-theme="volcanic_ash"] .summary-label {
   color: #A1A1AA !important; background: repeating-linear-gradient(45deg, #F4F4F5, #F4F4F5 3px, #E4E4E7 3px, #E4E4E7 8px) !important;
 }
 [data-theme="volcanic_ash"] .review-text {
-  color: #18181B !important;
+  color: #F4F4F5 !important;
+}
+[data-theme="volcanic_ash"] .review-guest {
+  color: #A1A1AA !important;
 }
 
-/* Royal Gold Overrides for Hardcoded White Backgrounds in guest.css */
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .booking-section .section-title,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .reviews-section .section-title,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .room-card .room-opt-name,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .dining-card .dining-name,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .cal-day,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .cal-title,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .summary-row,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .tour-inner .section-title {
+/* Volcanic Ash — Hero Readability (Forced Black Text) */
+[data-theme="volcanic_ash"] .hero-content h1,
+[data-theme="volcanic_ash"] .hero-content h1 em,
+[data-theme="volcanic_ash"] .hero-content p,
+[data-theme="volcanic_ash"] .hero-content .section-label {
+  color: black !important;
+}
+
+/* Volcanic Ash — Tour Section Readability (Forced Black Text) */
+[data-theme="volcanic_ash"] .tour-inner .section-title,
+[data-theme="volcanic_ash"] .tour-inner .section-title em,
+[data-theme="volcanic_ash"] .tour-inner .section-sub,
+[data-theme="volcanic_ash"] .tour-inner .section-label {
+  color: black !important;
+}
+
+
+
+/* Royal Gold Overrides — Dark-background theme needs light text */
+/* Royal Gold — Cards with hardcoded white background in guest.css MUST have dark text */
+[data-theme="royal_gold"] .room-card .room-name,
+[data-theme="royal_gold"] .dining-card .dining-name,
+[data-theme="royal_gold"] .tour-inner .section-title {
   color: #121212 !important;
 }
 
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .booking-section .section-sub,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .reviews-section .section-sub,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .room-card .room-opt-cap,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .dining-card .dining-desc,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .cal-day.empty,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .cal-day.past,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .tour-inner .section-sub,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .tour-inner .section-label,
-html:not([data-mode="dark"]) [data-theme="royal_gold"] .summary-label {
-  color: #333333 !important;
+/* Royal Gold — Elements on dark backgrounds (Onyx/Sand) MUST have light text */
+[data-theme="royal_gold"] .cal-day,
+[data-theme="royal_gold"] .cal-title,
+[data-theme="royal_gold"] .summary-row,
+[data-theme="royal_gold"] .section-title,
+[data-theme="royal_gold"] .hero-content h1 {
+  color: #F5F5F0 !important;
+}
+[data-theme="royal_gold"] .hero-content h1 em {
+  color: #FFDF80 !important;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+[data-theme="royal_gold"] .room-card .room-capacity,
+[data-theme="royal_gold"] .room-card .price-per,
+[data-theme="royal_gold"] .room-badge,
+[data-theme="royal_gold"] .dining-card .dining-desc,
+[data-theme="royal_gold"] .dining-card .dining-type {
+  color: #444 !important;
+}
+
+[data-theme="royal_gold"] .summary-label,
+[data-theme="royal_gold"] .section-sub,
+[data-theme="royal_gold"] .cal-dow,
+[data-theme="royal_gold"] .hero-content p {
+  color: #F0F0F0 !important;
+}
+
+[data-theme="royal_gold"] .cal-day.empty,
+[data-theme="royal_gold"] .cal-day.past {
+  color: #555555 !important;
 }
 
 
 [data-theme="royal_gold"] .tour-tab {
-  color: #121212; border-color: #888888;
+  color: #555555; border-color: #AAAAAA; background: rgba(0,0,0,0.05);
 }
 [data-theme="royal_gold"] .tour-tab.active,
 [data-theme="royal_gold"] .tour-tab:hover {
-  background: #242424; color: white; border-color: #242424;
+  background: #D4AF37; color: #121212; border-color: #D4AF37;
+}
+[data-theme="royal_gold"] .booking-tab {
+  color: #AAAAAA !important;
 }
 [data-theme="royal_gold"] .booking-tab.active {
-  color: #121212 !important; background: white !important;
+  color: #121212 !important; background: #D4AF37 !important;
 }
 [data-theme="royal_gold"] .tour-play {
-  color: #121212; border-color: #121212; background: rgba(0,0,0,0.05);
+  color: white !important; border-color: rgba(255,255,255,0.5) !important; background: rgba(255,255,255,0.2) !important;
 }
 [data-theme="royal_gold"] .tour-label {
-  color: #121212;
+  color: rgba(255,255,255,0.8) !important;
 }
 [data-theme="royal_gold"] .cal-day.unavailable {
-  color: #888888 !important; background: repeating-linear-gradient(45deg, #FFFFFF, #FFFFFF 3px, #F0F0F0 3px, #F0F0F0 8px) !important;
+  color: #666666 !important; background: repeating-linear-gradient(45deg, #1A1A1A, #1A1A1A 3px, #242424 3px, #242424 8px) !important;
 }
 [data-theme="royal_gold"] .review-text {
+  color: #E0E0E0 !important;
+}
+[data-theme="royal_gold"] .review-guest {
+  color: #AAAAAA !important;
+}
+
+/* Royal Gold — Nav links, buttons, and interactive elements */
+[data-theme="royal_gold"] .nav-links a {
+  color: rgba(255,255,255,0.9) !important;
+}
+[data-theme="royal_gold"] .sticky-book.scrolled .nav-links a {
+  color: #CCCCCC !important;
+}
+[data-theme="royal_gold"] .btn-book-now {
+  background: #D4AF37 !important; color: #121212 !important;
+  box-shadow: 0 4px 15px rgba(212,175,55,0.4) !important;
+}
+[data-theme="royal_gold"] .btn-book-now:hover {
+  background: #B5952F !important;
+  box-shadow: 0 8px 25px rgba(212,175,55,0.5) !important;
+}
+[data-theme="royal_gold"] .btn-reserve {
+  background: #D4AF37 !important; color: #121212 !important;
+}
+[data-theme="royal_gold"] .btn-reserve:hover {
+  background: #B5952F !important;
+}
+[data-theme="royal_gold"] .btn-hero-primary {
+  background: #D4AF37 !important; color: #121212 !important;
+}
+[data-theme="royal_gold"] .cal-nav {
+  color: #CCCCCC !important; border-color: #555555 !important;
+}
+[data-theme="royal_gold"] .cal-dow {
+  color: #AAAAAA !important;
+}
+[data-theme="royal_gold"] .legend-item {
+  color: #AAAAAA !important;
+}
+[data-theme="royal_gold"] .section-label {
+  color: #D4AF37 !important;
+}
+[data-theme="royal_gold"] .floating-group label {
+  color: #AAAAAA !important;
+}
+[data-theme="royal_gold"] .floating-group input,
+[data-theme="royal_gold"] .floating-group textarea {
+  color: #F5F5F0 !important; border-color: #555555 !important;
+}
+[data-theme="royal_gold"] .btn-ghost {
+  color: #CCCCCC !important; border-color: #555555 !important;
+}
+
+/* Royal Gold — Tour section has white bg (--text-dark = #FFF), needs dark text */
+[data-theme="royal_gold"] .tour-inner .section-title {
   color: #121212 !important;
 }
+[data-theme="royal_gold"] .tour-inner .section-sub {
+  color: #555555 !important;
+}
+[data-theme="royal_gold"] .tour-inner .section-label {
+  color: #917726 !important;
+}
+
+/* Royal Gold — Activities section (gold gradient bg) needs white text */
+[data-theme="royal_gold"] .activities-section .section-title,
+[data-theme="royal_gold"] .activities-section .section-title em {
+  color: #FFFFFF !important;
+}
+[data-theme="royal_gold"] .activities-section .section-label {
+  color: rgba(255,255,255,0.8) !important;
+}
+[data-theme="royal_gold"] .activities-section .section-sub {
+  color: rgba(255,255,255,0.9) !important;
+}
+
+/* Royal Gold — Site Editor specific fixes */
+[data-theme="royal_gold"] .se-editable-box[placeholder="Name"],
+[data-theme="royal_gold"] .se-editable-box[placeholder="Description"] {
+  color: #121212 !important;
+}
+[data-theme="royal_gold"] .dining-card .se-editable-box {
+  color: #333333;
+}
+[data-theme="royal_gold"] .activity-card .se-editable-box {
+  color: white !important;
+}
+
+/* Royal Gold — Activities in Site Editor */
+[data-theme="royal_gold"] .activity-name,
+[data-theme="royal_gold"] .activity-desc {
+  color: #F5F5F0 !important;
+}
+
+/* Royal Gold — Advanced Section in Site Editor */
+[data-theme="royal_gold"] .se-section .card label,
+[data-theme="royal_gold"] .se-section .card div {
+  color: #F5F5F0;
+}
+[data-theme="royal_gold"] .se-section .card p {
+  color: #AAAAAA;
+}
+[data-theme="royal_gold"] .se-section .se-section-label {
+  color: #D4AF37;
+}
+
+/* Tropical Canopy Overrides — Lush green background needs high contrast text */
+[data-theme="tropical_canopy"] .hero-content h1 em,
+[data-theme="tropical_canopy"] .section-title em {
+  color: #A5D6A7 !important; /* Lighter mint green for emphasis */
+}
+[data-theme="tropical_canopy"] .section-label {
+  color: #81C784 !important;
+}
+[data-theme="tropical_canopy"] .hero-content p,
+[data-theme="tropical_canopy"] .section-sub {
+  color: #E8F5E9 !important;
+}
+[data-theme="tropical_canopy"] .nav-links a:hover {
+  color: #A5D6A7 !important;
+}
+[data-theme="tropical_canopy"] .btn-book-now {
+  background: #2E7D32 !important;
+  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4) !important;
+}
+[data-theme="tropical_canopy"] .btn-book-now:hover {
+  background: #1B5E20 !important;
+}
+[data-theme="tropical_canopy"] .room-option.selected {
+  background: #A5D6A7 !important;
+  color: #0A2B0D !important;
+}
+
+/* Coastal Pearl Overrides — Dark navy background needs light text */
+[data-theme="coastal_pearl"] .hero-content h1,
+[data-theme="coastal_pearl"] .hero-content p,
+[data-theme="coastal_pearl"] .hero-content .section-label {
+  color: #FFFFFF !important;
+}
+[data-theme="coastal_pearl"] .hero-content h1 em,
+[data-theme="coastal_pearl"] .tour-inner .section-title em {
+  color: #5EEAD4 !important; /* Bright Cyan for emphasis */
+}
+[data-theme="coastal_pearl"] .nav-links a:hover {
+  color: #5EEAD4 !important;
+}
+
+/* Coastal Pearl — Elements on light backgrounds need dark text instead of the bright cyan --sunset */
+[data-theme="coastal_pearl"] .booking-section .section-label,
+[data-theme="coastal_pearl"] .rooms-section .section-label,
+[data-theme="coastal_pearl"] .dining-section .section-label,
+[data-theme="coastal_pearl"] .reviews-section .section-label,
+[data-theme="coastal_pearl"] .dining-type {
+  color: #1E3A8A !important; /* Deep Aqua instead of light cyan */
+}
+[data-theme="coastal_pearl"] .room-card .room-capacity,
+[data-theme="coastal_pearl"] .room-card .price-per,
+[data-theme="coastal_pearl"] .dining-card .dining-desc {
+  color: #334155 !important; /* Darker muted text for white cards */
+}
+
+
+
+
+
 
 [data-theme="coral_flamingo"] {
   --white: #FFFFFF;

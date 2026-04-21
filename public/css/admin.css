@@ -5,10 +5,17 @@
 
 html, body { height: 100%; background: var(--bg); }
 
+/* Force dark text on hardcoded white backgrounds in admin panel */
+.main, .modal-overlay, .chat-layout, .se-sticky-bar {
+  --text-dark: #1A1A1A !important;
+  --text-muted: #6B7280 !important;
+  color: var(--text-dark);
+}
+
 /* SIDEBAR */
 .sidebar {
   position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w);
-  background: linear-gradient(180deg,#0A1F1E 0%,#0D2E2B 60%,#0A1F1E 100%);
+  background: var(--aqua-deep);
   z-index: 100; display: flex; flex-direction: column;
   box-shadow: 4px 0 30px rgba(0,0,0,0.2); transition: transform 0.3s ease;
 }
@@ -17,10 +24,10 @@ html, body { height: 100%; background: var(--bg); }
 .logo-main span { color: var(--sunset); }
 .logo-sub       { font-size: 0.65rem; color: rgba(255,255,255,0.4); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 0.2rem; }
 .sidebar-nav    { flex: 1; padding: 1rem 0; overflow-y: auto; }
-.nav-section-label { font-size: 0.6rem; color: rgba(255,255,255,0.3); letter-spacing: 0.15em; text-transform: uppercase; padding: 0.8rem 1.2rem 0.3rem; }
+.nav-section-label { font-size: 0.6rem; color: rgba(255,255,255,0.7); letter-spacing: 0.15em; text-transform: uppercase; padding: 0.8rem 1.2rem 0.3rem; }
 .nav-item {
   display: flex; align-items: center; gap: 0.8rem; padding: 0.7rem 1.2rem; cursor: pointer;
-  font-size: 0.84rem; color: rgba(255,255,255,0.6); transition: all 0.25s;
+  font-size: 0.84rem; color: rgba(255,255,255,0.95); transition: all 0.25s;
   border-left: 3px solid transparent; text-decoration: none;
 }
 .nav-item:hover  { background: rgba(255,255,255,0.06); color: white; border-left-color: rgba(78,198,192,0.5); }
@@ -107,15 +114,46 @@ th {
   border-bottom: 2px solid var(--sand-mid); white-space: nowrap;
 }
 td { padding: 0.7rem 0.8rem; font-size: 0.84rem; color: var(--text-dark); border-bottom: 1px solid var(--sand); vertical-align: middle; }
-tr:hover td { background: var(--sand); }
+tr:hover td { background: var(--sand-light); }
+[data-theme="royal_gold"] tr:hover td { background: rgba(212, 175, 55, 0.1) !important; }
 tr.flagged-row td { background: #FEF2F2; }
 tr.flagged-row:hover td { background: #FECACA30; }
 
 /* SEARCH BAR */
 .search-row   { display: flex; gap: 0.8rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
-.search-input { border: 1.5px solid var(--sand-mid); border-radius: 8px; padding: 0.55rem 1rem; font-family: var(--font-sans); font-size: 0.85rem; outline: none; transition: all 0.2s; flex: 1; min-width: 200px; }
+.search-input { 
+  background: white !important; 
+  color: #1A1A1A !important; 
+  border: 1.5px solid var(--sand-mid); 
+  border-radius: 8px; 
+  padding: 0.55rem 1rem; 
+  font-family: var(--font-sans); 
+  font-size: 0.85rem; 
+  outline: none; 
+  transition: all 0.2s; 
+  flex: 1; 
+  min-width: 200px; 
+}
 .search-input:focus { border-color: var(--aqua); box-shadow: 0 0 0 3px rgba(78,198,192,0.15); }
 select.search-input { cursor: pointer; }
+
+/* Site Editor Theme Selector */
+.se-theme-select {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--sand-mid);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  background: white !important;
+  color: #1A1A1A !important;
+  cursor: pointer;
+  appearance: auto;
+}
+.se-theme-select:focus {
+  outline: 2px solid var(--aqua);
+  border-color: var(--aqua);
+}
 
 /* ADMIN MODAL */
 .modal {
@@ -126,6 +164,17 @@ select.search-input { cursor: pointer; }
 .modal-overlay.open .modal { transform: translateY(0) scale(1); }
 .modal-title   { font-family: var(--font-serif); font-size: 1.5rem; font-weight: 300; margin-bottom: 1.2rem; color: var(--text-dark); }
 .modal-actions { display: flex; gap: 0.7rem; margin-top: 1.5rem; justify-content: flex-end; }
+.modal input, .modal textarea, .modal select {
+  color: #1A1A1A !important;
+  background: white !important;
+  border: 1px solid #D1D5DB !important;
+}
+.modal input::placeholder, .modal textarea::placeholder {
+  color: #9CA3AF !important;
+}
+.modal label {
+  color: #4B5563 !important;
+}
 
 /* REPAIR ITEMS */
 .repair-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
@@ -214,7 +263,7 @@ select.search-input { cursor: pointer; }
 /* ── SITE EDITOR VISUAL PREVIEW ─────────────────────────────── */
 .se-sticky-bar {
   position: sticky;
-  top: -1.5rem; /* Offsets the content padding */
+  top: 75px; /* Sticks right below the topbar */
   margin: -1.5rem -1.8rem 1.5rem;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(10px);
@@ -261,15 +310,16 @@ select.search-input { cursor: pointer; }
   min-height: 1em;
 }
 .se-editable:hover {
-  outline-color: var(--aqua);
-  background: rgba(78, 198, 192, 0.06);
+  outline-color: #D4AF37;
+  background: rgba(212, 175, 55, 0.08);
 }
 .se-editable:focus {
-  outline-color: var(--sunset);
+  outline-color: #D4AF37;
   outline-style: solid;
   outline-width: 2px;
-  background: rgba(255, 208, 181, 0.08);
-  box-shadow: 0 0 0 4px rgba(255, 208, 181, 0.15);
+  background: rgba(212, 175, 55, 0.1);
+  box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
+  z-index: 100;
 }
 .se-editable::after {
   content: '✏️';
@@ -294,19 +344,34 @@ select.search-input { cursor: pointer; }
   min-height: 1.2em;
 }
 .se-editable-box:hover {
-  outline-color: var(--aqua);
-  background: rgba(78, 198, 192, 0.04);
+  outline-color: #D4AF37;
+  background: rgba(212, 175, 55, 0.05);
 }
 .se-editable-box:focus {
-  outline-color: var(--sunset);
-  outline-style: solid;
+  outline: 2px solid #D4AF37;
   background: white !important;
   color: #1A1A1A !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
   z-index: 100;
 }
 .se-editable-box[placeholder]:empty:before {
   content: attr(placeholder);
-  color: var(--text-muted);
+  color: #888;
   opacity: 0.6;
+}
+
+/* Force dark text and white background in modals and form groups regardless of theme */
+.modal input, .modal textarea, .modal select,
+.form-group input, .form-group textarea, .form-group select {
+  color: #1A1A1A !important;
+  background: white !important;
+}
+.modal input::placeholder, .modal textarea::placeholder {
+  color: #999 !important;
+}
+
+/* Site Editor Boxes — Should inherit theme backgrounds by default */
+.se-editable-box {
+  background: transparent;
+  color: inherit;
 }

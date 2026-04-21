@@ -251,8 +251,6 @@ function getAutoIcon(label = '', link = '', fallback = '📞') {
     // Save to cache for fast branding sync on next load
     localStorage.setItem('ABHC_siteContent', JSON.stringify({ data: items, time: Date.now() }));
     
-    // ── INITIALIZE DARK MODE ──
-    initDarkMode();
 
     // ── HANDLE WEATHER VISIBILITY ──
     const weatherEnabled = map['weather_enabled'] !== 'false';
@@ -1425,30 +1423,4 @@ document.querySelectorAll('.magnetic').forEach(btn => {
 // Load rooms immediately (Step 1 is now Choose Room)
 renderRoomsTab();
 
-// ── NIGHT VIEW (DARK MODE) LOGIC ──
-function initDarkMode() {
-  const toggle = document.getElementById('darkModeToggle');
-  const icon = document.getElementById('darkModeIcon');
-  if (!toggle) return;
-
-  const savedMode = localStorage.getItem('abhc_mode');
-  if (savedMode === 'dark') {
-    document.documentElement.setAttribute('data-mode', 'dark');
-    if (icon) icon.textContent = '☀️';
-  }
-
-  toggle.onclick = (e) => {
-    e.preventDefault();
-    const isDark = document.documentElement.getAttribute('data-mode') === 'dark';
-    if (isDark) {
-      document.documentElement.removeAttribute('data-mode');
-      localStorage.setItem('abhc_mode', 'light');
-      if (icon) icon.textContent = '🌙';
-    } else {
-      document.documentElement.setAttribute('data-mode', 'dark');
-      localStorage.setItem('abhc_mode', 'dark');
-      if (icon) icon.textContent = '☀️';
-    }
-  };
-}
 
