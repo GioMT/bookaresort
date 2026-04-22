@@ -8,6 +8,7 @@ html, body { height: 100%; background: var(--bg); }
 /* Force dark text on hardcoded white backgrounds in admin panel */
 .main, .modal-overlay, .chat-layout, .se-sticky-bar {
   --text-dark: #1A1A1A !important;
+  --text-mid: #4B5563 !important;
   --text-muted: #6B7280 !important;
   color: var(--text-dark);
 }

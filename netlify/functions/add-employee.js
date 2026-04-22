@@ -21,7 +21,7 @@ exports.handler = async (event) => {
       return { statusCode: 403, body: JSON.stringify({ error: "Access Denied: Only the Master Admin can create accounts." }) };
     }
 
-    const { email, password, firstName, lastName, phone } = JSON.parse(event.body);
+    const { email, password, firstName, lastName, phone, role } = JSON.parse(event.body);
 
     // 1. Get the custom business tag
     const { data: contentData } = await supabase.from('site_content').select('value').eq('key', 'business_tag').single();
@@ -57,7 +57,8 @@ exports.handler = async (event) => {
       first_name: firstName,
       last_name: lastName,
       phone: phone || '',
-      role: 'staff'
+      role: role || 'staff',
+      status: 'Probation'
     }]);
     if (profileErr) throw profileErr;
 

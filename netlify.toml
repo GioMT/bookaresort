@@ -83,3 +83,12 @@
   to = "/.netlify/functions/site-content"
   status = 200
  
+[[redirects]]
+  from = "/api/get-employees"
+  to = "/.netlify/functions/get-employees"
+  status = 200
+
+[[redirects]]
+  from = "/api/update-employee"
+  to = "/.netlify/functions/update-employee"
+  status = 200

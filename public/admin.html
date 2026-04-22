@@ -277,6 +277,13 @@
           </div>
           <div class="form-group"><label>Phone Number</label><input type="tel" id="empPhone" placeholder="+63 912 345 6789"></div>
           <div class="form-group"><label>Employee Email</label><input type="email" id="empEmail" placeholder="juan@avellanos.com"></div>
+          <div class="form-group">
+            <label>Role</label>
+            <select id="empRole">
+              <option value="staff">Staff</option>
+              <option value="master">Admin</option>
+            </select>
+          </div>
           <div class="form-group"><label>Temporary Password</label><input type="password" id="empPass" placeholder="At least 6 characters"></div>
           <button class="btn btn-success" id="btnCreateEmp" onclick="createEmployee()" style="width: 100%; margin-top: 0.5rem;">+ Create Account</button>
           <div id="empMsg" style="margin-top: 1rem; font-size: 0.85rem; text-align: center; font-weight: 500;"></div>
@@ -285,9 +292,12 @@
         <div class="card" style="flex:2;min-width:400px;">
           <div class="card-title">👨‍💼 Employee List</div>
           <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;">Manage active staff accounts.</p>
+          <div style="margin-bottom: 1rem;">
+            <input type="text" id="staffSearch" class="search-input" placeholder="Search by ID, name, email, or phone..." oninput="filterStaffList()" style="width: 100%; max-width: 400px;">
+          </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Employee ID</th><th>First Name</th><th>Last Name</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>
+              <thead><tr><th>Employee ID</th><th>First Name</th><th>Last Name</th><th>Email</th><th>Role</th><th>Status</th><th>Action</th></tr></thead>
               <tbody id="empTbody"></tbody>
             </table>
           </div>
@@ -442,7 +452,7 @@
             <p style="font-size:0.75rem; color:var(--text-muted); margin:0;">Previewing Live Content</p>
           </div>
           <div style="display:flex; gap:0.6rem;">
-            <button class="btn btn-ghost btn-sm" onclick="loadSiteEditor()">🔄 Discard Changes</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadSiteEditor()" style="color: var(--text-dark) !important; border-color: var(--text-muted) !important; background: white !important;">🔄 Discard Changes</button>
             <button class="btn btn-primary btn-sm" id="siteEditorSaveBtn" onclick="saveSiteEditorContent()">💾 Save All Changes</button>
           </div>
         </div>
@@ -639,6 +649,22 @@
   </div>
 </div>
 
+<!-- BIZ AUTH MODAL -->
+<div class="modal-overlay" id="bizAuthModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-title">Master Admin Authentication</div>
+    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.5rem;">Please enter your password to edit the Business Profile.</p>
+    <div class="form-group">
+      <label>Master Admin Password</label>
+      <input type="password" id="bizAuthPass" placeholder="Enter password..." onkeypress="if(event.key==='Enter') authenticateBizProfile()">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('bizAuthModal')">Cancel</button>
+      <button class="btn btn-primary" id="bizAuthBtn" onclick="authenticateBizProfile()">Verify & Edit</button>
+    </div>
+  </div>
+</div>
+
 <!-- STAFF EDIT MODAL -->
 <div class="modal-overlay" id="staffEditModal">
   <div class="modal" style="max-width:450px;">
@@ -650,6 +676,14 @@
     </div>
     <div class="form-group"><label>Phone Number</label><input type="tel" id="editStaffPhone"></div>
     <div class="form-group"><label>Email</label><input type="email" id="editStaffEmail"></div>
+    <div class="form-group">
+      <label>Status</label>
+      <select id="editStaffStatus">
+        <option value="Probation">Probation</option>
+        <option value="Regular">Regular</option>
+        <option value="Terminated">Terminated</option>
+      </select>
+    </div>
     <div class="form-group"><label>Employee ID (Read-only)</label><input type="text" id="editStaffEmpId" readonly style="background:var(--sand); cursor:not-allowed;"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('staffEditModal')">Cancel</button>

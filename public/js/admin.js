@@ -247,14 +247,49 @@ async function renderBusinessInfo() {
 
 window.toggleBizEdit = function (editing) {
   if (editing) {
+    if (_currentStaffRole !== 'master') {
+      toast('Access Denied: Only Head Admin can edit the business profile.', 'error');
+      return;
+    }
+    document.getElementById('bizAuthPass').value = '';
+    openModal('bizAuthModal');
+  } else {
+    renderBusinessInfo();
+  }
+};
+
+window.authenticateBizProfile = async function() {
+  const pass = document.getElementById('bizAuthPass').value;
+  if (!pass) return toast('Password is required.', 'error');
+  
+  const btn = document.getElementById('bizAuthBtn');
+  btn.disabled = true; btn.textContent = 'Verifying...';
+  
+  try {
+    const { data: { user } } = await window.supa.auth.getUser();
+    if (!user) throw new Error("No active session.");
+    
+    const { data, error } = await window.supa.auth.signInWithPassword({
+      email: user.email,
+      password: pass
+    });
+    
+    if (error) throw new Error("Incorrect password.");
+    
+    closeModal('bizAuthModal');
+    toast('Authentication successful.', 'success');
+    
+    // Show edit view
     document.getElementById('bizDisplay').style.display = 'none';
     document.getElementById('bizEdit').style.display = 'grid';
     document.getElementById('bizActions').innerHTML = `
       <button class="btn btn-ghost btn-sm" onclick="toggleBizEdit(false)">Cancel</button>
       <button class="btn btn-primary btn-sm" onclick="saveBizInfo()">💾 Save Changes</button>
     `;
-  } else {
-    renderBusinessInfo();
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Verify & Edit';
   }
 };
 
@@ -1910,6 +1945,7 @@ async function createEmployee() {
   const lName = document.getElementById('empLName').value.trim();
   const phone = document.getElementById('empPhone').value.trim();
   const email = document.getElementById('empEmail').value.trim();
+  const role = document.getElementById('empRole').value;
   const pass = document.getElementById('empPass').value;
   const btn = document.getElementById('btnCreateEmp');
   const msg = document.getElementById('empMsg');
@@ -1927,7 +1963,7 @@ async function createEmployee() {
     const res = await fetch('/api/add-employee', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({ firstName: fName, lastName: lName, phone: phone, email: email, password: pass })
+      body: JSON.stringify({ firstName: fName, lastName: lName, phone: phone, email: email, password: pass, role: role })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
@@ -2560,29 +2596,7 @@ async function renderSiteEditor() {
     </div>
   </div>
 
-  <!-- ── ADVANCED FEATURES & RULES ── -->
-  <div class="card" style="margin-bottom:1rem;">
-    <div class="card-title">⚙️ Advanced Features & Rules</div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem;">
-      <div>
-        <label style="display:block; margin-bottom:0.5rem; font-weight:600;">Hero Features</label>
-        <div style="display:flex; gap:1.5rem;">
-          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="checkbox" onchange="_seData['weather_enabled'] = this.checked ? 'true' : 'false'" ${_seData['weather_enabled'] !== 'false' ? 'checked' : ''}> Live Weather
-          </label>
-          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="checkbox" onchange="_seData['tide_enabled'] = this.checked ? 'true' : 'false'" ${_seData['tide_enabled'] === 'true' ? 'checked' : ''}> High Tide Info
-          </label>
-        </div>
-        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem;">These will appear in the Hero section based on your resort's coordinates.</p>
-      </div>
-      <div>
-        <label style="display:block; margin-bottom:0.5rem; font-weight:600;">House Rules (Auto-sync to KB)</label>
-        <textarea class="se-editable" data-se-key="house_rules" oninput="_seData['house_rules'] = this.value" placeholder="Enter resort policies..." style="width:100%; height:100px; padding:0.8rem; border-radius:8px; border:1.5px solid var(--sand-mid); font-family:var(--font-sans); font-size:0.85rem;">${_seData['house_rules'] || ''}</textarea>
-        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.3rem;">Rules entered here are automatically sent in confirmation emails and updated in the Knowledge Base.</p>
-      </div>
-    </div>
-  </div>
+
 
   <!-- ── HERO SECTION ── -->
   <div class="se-section">
@@ -3271,11 +3285,16 @@ async function saveSiteEditorContent() {
   });
 
   // Manually add checkboxes and specific inputs not using .se-editable HTML
-  const weatherCb = document.querySelector('input[onchange*="weather_enabled"]');
+  const weatherCb = document.querySelector('input[data-se-key="weather_enabled"]');
   if (weatherCb) items.push({ key: 'weather_enabled', value: weatherCb.checked ? 'true' : 'false', section: 'other', label: 'Weather Enabled' });
   
-  const tideCb = document.querySelector('input[onchange*="tide_enabled"]');
+  const tideCb = document.querySelector('input[data-se-key="tide_enabled"]');
   if (tideCb) items.push({ key: 'tide_enabled', value: tideCb.checked ? 'true' : 'false', section: 'other', label: 'Tide Enabled' });
+
+  const houseRulesEl = document.querySelector('textarea[data-se-key="house_rules"]');
+  if (houseRulesEl) {
+    items.push({ key: 'house_rules', value: houseRulesEl.value, section: 'other', label: 'Guest House Rules' });
+  }
 
   // Save the visual theme selection
   const themeSelect = document.querySelector('.se-theme-select');
@@ -3404,24 +3423,40 @@ async function renderStaffList() {
     if (!res.ok) throw new Error(data.error || "Failed to load staff");
 
     window.staffListData = data;
-
-    document.getElementById('empTbody').innerHTML = data.map(s => `
-      <tr>
-        <td style="font-family:monospace; font-weight:600; color:var(--sunset);">${s.emp_id || '---'}</td>
-        <td>${s.first_name}</td>
-        <td>${s.last_name}</td>
-        <td>${s.email || '---'}</td>
-        <td><span class="badge ${s.role === 'master' ? 'badge-confirmed' : 'badge-pending'}">${s.role.toUpperCase()}</span></td>
-        <td style="display:flex; gap:0.5rem;">
-          <button class="btn btn-ghost btn-xs" onclick="openStaffEditModal('${s.id}')">✏️ Edit</button>
-          <button class="btn btn-danger btn-xs" onclick="deleteStaff('${s.id}')">🗑 Remove</button>
-        </td>
-      </tr>
-    `).join('');
+    filterStaffList();
   } catch (err) {
     toast('Error loading staff: ' + err.message, 'error');
   }
 }
+
+window.filterStaffList = function() {
+  const query = (document.getElementById('staffSearch')?.value || '').toLowerCase();
+  const filtered = window.staffListData.filter(s => {
+    return (s.emp_id || '').toLowerCase().includes(query) ||
+           (s.first_name || '').toLowerCase().includes(query) ||
+           (s.last_name || '').toLowerCase().includes(query) ||
+           (s.email || '').toLowerCase().includes(query) ||
+           (s.phone || '').toLowerCase().includes(query);
+  });
+  renderStaffTableHTML(filtered);
+};
+
+window.renderStaffTableHTML = function(data) {
+  document.getElementById('empTbody').innerHTML = data.map(s => `
+    <tr>
+      <td style="font-family:monospace; font-weight:600; color:var(--sunset);">${s.emp_id || '---'}</td>
+      <td>${s.first_name}</td>
+      <td>${s.last_name}</td>
+      <td>${s.email || '---'}</td>
+      <td><span class="badge ${s.role === 'master' ? 'badge-confirmed' : 'badge-pending'}">${(s.role || 'staff').toUpperCase()}</span></td>
+      <td><span class="badge" style="background:var(--sand); color:var(--text-dark);">${s.status || 'Probation'}</span></td>
+      <td style="display:flex; gap:0.5rem;">
+        <button class="btn btn-ghost btn-xs" onclick="openStaffEditModal('${s.id}')">✏️ Edit</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteStaff('${s.id}')">🗑 Remove</button>
+      </td>
+    </tr>
+  `).join('');
+};
 
 window.openStaffEditModal = async function (id) {
   try {
@@ -3434,6 +3469,7 @@ window.openStaffEditModal = async function (id) {
     document.getElementById('editStaffPhone').value = data.phone || '';
     document.getElementById('editStaffEmail').value = data.email || '';
     document.getElementById('editStaffEmpId').value = data.emp_id || '---';
+    document.getElementById('editStaffStatus').value = data.status || 'Probation';
 
     openModal('staffEditModal');
   } catch (err) {
@@ -3446,6 +3482,7 @@ window.saveStaffEdit = async function () {
   const firstName = document.getElementById('editStaffFName').value.trim();
   const lastName = document.getElementById('editStaffLName').value.trim();
   const phone = document.getElementById('editStaffPhone').value.trim();
+  const status = document.getElementById('editStaffStatus').value;
 
   if (!firstName || !lastName) {
     toast('First and Last name are required.', 'error');
@@ -3459,7 +3496,8 @@ window.saveStaffEdit = async function () {
     const { error } = await window.supa.from('staff_profiles').update({
       first_name: firstName,
       last_name: lastName,
-      phone: phone
+      phone: phone,
+      status: status
     }).eq('id', id);
 
     if (error) throw error;

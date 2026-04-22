@@ -263,6 +263,9 @@ function getAutoIcon(label = '', link = '', fallback = '📞') {
   } catch (e) {
     console.warn('CMS content load skipped:', e.message);
     fetchWeather(); // Fallback
+  } finally {
+    window._siteContentReady = true;
+    if (typeof checkPreloader === 'function') checkPreloader();
   }
 })();
 
@@ -1369,15 +1372,23 @@ function showToast(message, type = 'success', duration = 4000) {
   }, duration);
 }
 
-// Preloader Fade-out
-window.addEventListener('load', () => {
-  const preloader = document.getElementById('preloader');
-  if (preloader) {
-    setTimeout(() => {
-      preloader.classList.add('fade-out');
-      setTimeout(() => preloader.style.display = 'none', 800);
-    }, 500); // Minimum display time
+// Preloader Fade-out (Wait for both window load and CMS content)
+window._windowLoaded = false;
+function checkPreloader() {
+  if (window._siteContentReady && window._windowLoaded) {
+    const preloader = document.getElementById('preloader');
+    if (preloader) {
+      setTimeout(() => {
+        preloader.classList.add('fade-out');
+        setTimeout(() => preloader.style.display = 'none', 800);
+      }, 200); // Small delay for smoothness
+    }
   }
+}
+
+window.addEventListener('load', () => {
+  window._windowLoaded = true;
+  checkPreloader();
 });
 
 // Mobile Menu Toggle
