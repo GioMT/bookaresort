@@ -1,7 +1,7 @@
 {
-  "name": "avellanos-beach-hut",
+  "name": "resort-app",
   "version": "1.0.0",
-  "description": "Avellano's Beach Hut Cottage – Netlify + Supabase deployment",
+  "description": "",
   "private": true,
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"

@@ -40,6 +40,17 @@ exports.handler = async (event) => {
         if (error) throw error;
         return { statusCode: 200, headers, body: JSON.stringify(data) };
       }
+      if (action === 'updateKB') {
+        const { data: existing } = await supabase.from('knowledge_base').select('id').like('keywords', '%rules%').maybeSingle();
+        let result;
+        if (existing) {
+          result = await supabase.from('knowledge_base').update(body).eq('id', existing.id).select().single();
+        } else {
+          result = await supabase.from('knowledge_base').insert([body]).select().single();
+        }
+        if (result.error) throw result.error;
+        return { statusCode: 200, headers, body: JSON.stringify(result.data) };
+      }
     }
 
     if (event.httpMethod === 'PATCH' && action === 'updateCase' && caseId) {

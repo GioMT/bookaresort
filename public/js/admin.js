@@ -1,6 +1,6 @@
 /* ============================================================
    admin.js — Admin panel logic
-   Avellano's Beach Hut Cottage
+
    ============================================================ */
 
 // ── STAFF ROLE TRACKING ──────────────────────────────────────────────────────
@@ -409,7 +409,7 @@ window.renderBizDocs = async function () {
   const grid = document.getElementById('bizDocsGrid');
   grid.innerHTML = '<div style="color:var(--text-muted); font-size:0.9rem;">Loading documents...</div>';
   try {
-    const { data: docs, error } = await supabase.from('business_docs').select('*').order('created_at', { ascending: false });
+    const { data: docs, error } = await window.supa.from('business_docs').select('*').order('created_at', { ascending: false });
     if (error) throw error;
     if (!docs || docs.length === 0) {
       grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:3rem; background:var(--sand); border-radius:12px; color:var(--text-muted);">No documents uploaded yet.<br><br>Click "+ Upload Document" to add your first file.</div>';
@@ -441,12 +441,12 @@ window.handleDocUpload = async function (e) {
     const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const filename = `${Date.now()}_${safeName}`;
 
-    const { data: uploadData, error: uploadErr } = await supabase.storage.from('business_docs').upload(filename, file);
+    const { data: uploadData, error: uploadErr } = await window.supa.storage.from('business_docs').upload(filename, file);
     if (uploadErr) throw uploadErr;
 
-    const { data: urlData } = supabase.storage.from('business_docs').getPublicUrl(filename);
+    const { data: urlData } = window.supa.storage.from('business_docs').getPublicUrl(filename);
 
-    const { error: dbErr } = await supabase.from('business_docs').insert([{
+    const { error: dbErr } = await window.supa.from('business_docs').insert([{
       filename: file.name,
       file_url: urlData.publicUrl,
       size_kb: Math.round(file.size / 1024),
@@ -464,7 +464,7 @@ window.handleDocUpload = async function (e) {
 window.deleteBizDoc = async function (id) {
   if (!confirm('Are you sure you want to delete this document?')) return;
   try {
-    await supabase.from('business_docs').delete().eq('id', id);
+    await window.supa.from('business_docs').delete().eq('id', id);
     toast('Document deleted.', 'success');
     renderBizDocs();
   } catch (err) {
@@ -1859,7 +1859,7 @@ async function exportCSV(type) {
     }
     rows = [['Reference', 'Guest Name', 'Email', 'Phone', 'Room', 'Check-In', 'Check-Out', 'Nights', 'Subtotal', 'Tax', 'Repair Cost', 'Total', 'Status', 'Flagged', 'Special Requests', 'Admin Notes', 'Created At']];
     bk.forEach(b => rows.push([b.ref, b.guest_name || b.guestName, b.guest_email || b.guestEmail, b.guest_phone || b.guestPhone, b.room_name || b.roomName, b.check_in || b.checkIn, b.check_out || b.checkOut, b.nights, b.subtotal, b.tax, b.repair_cost || b.repairCost || 0, b.total, b.status, b.flagged ? 'YES' : 'NO', b.special_req || b.specialReq || '', b.notes || '', b.created_at || b.createdAt || '']));
-    filename = 'avellanos_bookings_' + fmtD(new Date());
+    filename = 'resort_bookings_' + fmtD(new Date());
   } else if (type === 'revenue') {
     const bk = (await ABHC_DB.getBookings()).filter(b => b.status !== 'cancelled');
     const repairs = await ABHC_DB.getRepairs();
@@ -1873,15 +1873,15 @@ async function exportCSV(type) {
       const rc = rep.reduce((s, r) => s + (+r.amount || 0), 0);
       rows.push([d.toLocaleString('en-US', { month: 'long', year: 'numeric' }), gross, tax, rc, gross - rc, mn.length]);
     }
-    filename = 'avellanos_revenue_' + fmtD(new Date());
+    filename = 'resort_revenue_' + fmtD(new Date());
   } else if (type === 'repairs') {
     rows = [['Date', 'Reference', 'Category', 'Description', 'Amount', 'Created At']];
     (await ABHC_DB.getRepairs()).forEach(r => rows.push([r.date, r.ref || '', r.category, r.description, r.amount, r.created_at || r.createdAt || '']));
-    filename = 'avellanos_repairs_' + fmtD(new Date());
+    filename = 'resort_repairs_' + fmtD(new Date());
   } else if (type === 'flags') {
     rows = [['Name', 'Email', 'Severity', 'Reason', 'Flagged Date']];
     (await ABHC_DB.getFlaggedGuests()).forEach(f => rows.push([f.name, f.email, f.severity, f.reason, f.flagged_at || f.flaggedAt || '']));
-    filename = 'avellanos_flagged_guests_' + fmtD(new Date());
+    filename = 'resort_flagged_guests_' + fmtD(new Date());
   }
 
   const csv = rows.map(r => r.map(c => '"' + (String(c || '').replace(/"/g, '""')) + '"').join(',')).join('\n');
@@ -2126,7 +2126,7 @@ async function initSupport() {
                 await ABHC_DB.sendSupportMessage({
                   case_id: m.case_id,
                   sender_type: 'bot',
-                  sender_name: "Avellano's Support",
+                  sender_name: "Support",
                   message: "I just wanted to check if we are still connected?"
                 });
               }
@@ -2478,7 +2478,7 @@ const SITE_EDITOR_SCHEMA = [
   {
     section: 'hero', label: 'Hero Section', fields: [
       { key: 'hero_badge', label: 'Badge Text', type: 'text', placeholder: '✦ Beachfront Paradise · Philippines ✦' },
-      { key: 'hero_title', label: 'Main Title (HTML)', type: 'text', placeholder: "Avellano's<br><em>Beach Hut</em> Cottage" },
+      { key: 'hero_title', label: 'Main Title (HTML)', type: 'text', placeholder: "Your<br><em>Resort</em>" },
       { key: 'hero_subtitle', label: 'Subtitle', type: 'textarea', placeholder: 'Where the ocean meets endless sunsets...' },
     ]
   },
@@ -2605,8 +2605,8 @@ async function renderSiteEditor() {
       <div class="hero-bg"><div class="aurora"></div></div>
       <div class="hero-content" style="position:relative; z-index:2; padding:3rem 2rem;">
         <span class="hero-badge se-editable" contenteditable="true" data-se-key="hero_badge">${v('hero_badge', '✦ Beachfront Paradise · Philippines ✦')}</span>
-        <h1 class="se-editable" contenteditable="true" data-se-key="hero_title" style="font-size:2.2rem;">${v('hero_title', "Avellano's<br><em>Beach Hut</em> Cottage")}</h1>
-        <p class="hero-sub se-editable" contenteditable="true" data-se-key="hero_subtitle">${v('hero_subtitle', 'Where the ocean meets endless sunsets. A private beachfront retreat crafted for those who seek stillness, warmth, and the rhythm of the tides.')}</p>
+        <h1 class="se-editable" contenteditable="true" data-se-key="hero_title" style="font-size:2.2rem;">${v('hero_title', "Your<br><em>Resort</em>")}</h1>
+        <p class="hero-sub se-editable" contenteditable="true" data-se-key="hero_subtitle">${v('hero_subtitle', 'Where the ocean meets endless sunsets. Crafted for those who seek stillness, warmth, and the rhythm of the tides.')}</p>
       </div>
     </div>
   </div>
@@ -2757,8 +2757,8 @@ async function renderSiteEditor() {
   <div class="se-section">
     <div class="se-section-label">Branding &amp; Footer</div>
     <div class="footer-preview" style="background: linear-gradient(135deg, var(--aqua-deep), var(--aqua-dark)); border-radius:16px; padding:2rem; text-align:center; color:white;">
-      <div class="footer-logo se-editable" contenteditable="true" data-se-key="nav_brand" style="font-size:1.3rem; margin-bottom:0.8rem; color:white;">${v('nav_brand', "Avellano's <span>Beach Hut</span>")}</div>
-      <p class="footer-copy se-editable" contenteditable="true" data-se-key="footer_copy" style="opacity:0.7;">${v('footer_copy', '© 2025 Avellano\'s Beach Hut Cottage · All rights reserved · Designed with ☀️ for beach lovers.')}</p>
+      <div class="footer-logo se-editable" contenteditable="true" data-se-key="nav_brand" style="font-size:1.3rem; margin-bottom:0.8rem; color:white;">${v('nav_brand', "Your <span>Resort</span>")}</div>
+      <p class="footer-copy se-editable" contenteditable="true" data-se-key="footer_copy" style="opacity:0.7;">${v('footer_copy', '© 2025 Your Resort · All rights reserved · Designed with ☀️ for beach lovers.')}</p>
     </div>
   </div>
   `;
@@ -2792,8 +2792,8 @@ function renderContactEditor() {
       const saved = _seData['contact_list'];
       _contactList = typeof saved === 'string' ? JSON.parse(saved) : (saved || [
         { icon: '📞', label: 'Phone', value: '+63 912 345 6789', link: 'tel:+639123456789' },
-        { icon: '📧', label: 'Email', value: 'hello@avellanos.ph', link: 'mailto:hello@avellanos.ph' },
-        { icon: '📍', label: 'Location', value: "Avellano's Cove, Philippines", link: 'https://maps.google.com' },
+        { icon: '📧', label: 'Email', value: 'hello@example.com', link: 'mailto:hello@example.com' },
+        { icon: '📍', label: 'Location', value: "Resort Location", link: 'https://maps.google.com' },
         { icon: '⏰', label: 'Front Desk', value: '24 / 7', link: '' }
       ]);
     } catch (e) { _contactList = []; }
@@ -3360,9 +3360,8 @@ async function saveSiteEditorContent() {
     const rules = items.find(i => i.key === 'house_rules')?.value;
     if (rules) {
       await ABHC_DB.updateKB({
-        category: 'Policies',
-        title: 'Guest House Rules',
-        content: rules
+        keywords: 'rules, house rules, policies, check-in, check-out',
+        answer: 'Here are our house rules:\n' + rules
       });
     }
 

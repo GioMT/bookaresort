@@ -1,6 +1,6 @@
 /* ============================================================
    abhc-db.js — Shared data layer (Netlify functions → Supabase)
-   Avellano's Beach Hut Cottage
+
    ============================================================ */
 
 const ABHC_DB = (() => {
@@ -141,6 +141,7 @@ const ABHC_DB = (() => {
   function updateSupportCase(caseId, data) { return req(`/api/support?action=updateCase&caseId=${caseId}`, 'PATCH', data); }
   function getSupportMessages(caseId) { return req(`/api/support?action=messages&caseId=${caseId}`); }
   function sendSupportMessage(data) { return req('/api/support?action=sendMessage', 'POST', data); }
+  function updateKB(data) { return req('/api/support?action=updateKB', 'POST', data); }
 
   // ── SITE CONTENT CMS ─────────────────────────────────────────────────────────
   function getSiteContent() { return cached('siteContent', 60_000, () => req('/api/site-content')); }
@@ -155,6 +156,6 @@ const ABHC_DB = (() => {
     fmtD,
     getSiteContent, saveSiteContent,
     // Add these missing Customer Service functions!
-    getKB, getSupportCases, createSupportCase, updateSupportCase, getSupportMessages, sendSupportMessage
+    getKB, updateKB, getSupportCases, createSupportCase, updateSupportCase, getSupportMessages, sendSupportMessage
   };
 })();

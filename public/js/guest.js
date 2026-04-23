@@ -1,10 +1,10 @@
 /* ============================================================
    guest.js — Guest page logic
-   Avellano's Beach Hut Cottage
+   
    ============================================================ */
 
 // ── CMS CONTENT LOADER ───────────────────────────────────────────────────────
-let _businessName = "Avellano's"; // global fallback
+let _businessName = ""; // global fallback
 function applyContentMap(map) {
   document.querySelectorAll('[data-sc]').forEach(el => {
     const key = el.getAttribute('data-sc');
@@ -19,7 +19,7 @@ function applyContentMap(map) {
     if (chatTitle) chatTitle.textContent = `${_businessName}'s Support`;
     const preloaderLogo = document.getElementById('preloaderLogo');
     if (preloaderLogo) preloaderLogo.textContent = map['business_name'];
-    document.title = map['business_name'] + ' – Luxury Beachfront Retreat';
+    document.title = map['business_name'];
   }
 
   // ── DYNAMIC DINING RENDERING ──────────────────────────────────────────────
@@ -194,7 +194,7 @@ function getAutoIcon(label = '', link = '', fallback = '📞') {
 }
 
 (async function loadSiteContent() {
-  // 1. First, quickly apply cached branding to avoid "Avellanos" fallback
+  // 1. First, quickly apply cached branding to avoid fallback
   const cache = localStorage.getItem('ABHC_siteContent');
   if (cache) {
     try {
